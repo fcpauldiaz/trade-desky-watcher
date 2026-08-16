@@ -15,14 +15,8 @@ from notification_watcher.config import get_app_logger, get_log_path, load_confi
 from notification_watcher.login import is_launch_at_login_enabled, open_full_disk_access_settings, set_launch_at_login
 from notification_watcher.macos import format_delivered_date, get_notification_db_path
 from notification_watcher.platform import get_backend
-from notification_watcher.product import APP_NAME
-from notification_watcher.updater import (
-    check_for_updates,
-    download_and_install,
-    is_bundled_app,
-    release_page_url,
-    schedule_background_checks,
-)
+from notification_watcher.native_update import start_native_or_github
+from notification_watcher.product import APP_NAME, DOWNLOAD_PAGE_URL
 from notification_watcher.version import __version__
 from notification_watcher.watcher import watch
 
@@ -116,8 +110,9 @@ class NotificationWatcherApp(rumps.App):
         rumps.Timer(self._drain_queue, QUEUE_DRAIN_INTERVAL).start()
         rumps.Timer(self._recheck_permissions, FDA_RECHECK_INTERVAL).start()
         self._update_status_from_db()
-        if self._config.check_for_updates:
-            schedule_background_checks(self._notify_update_available, enabled=True)
+        self._native_updater = start_native_or_github(
+            automatic=self._config.check_for_updates,
+        )
         get_app_logger().info("App started (db=%s)", self._db_path)
 
     def _save_config(self) -> None:
@@ -352,63 +347,21 @@ class NotificationWatcherApp(rumps.App):
             items.append(rumps.MenuItem(f"{i + 1}. {label}", callback=self._show_recent_detail))
         self._recent_menu.update(items)
 
-    def _notify_update_available(self, result) -> None:
-        latest = result.latest
-        if latest is None:
-            return
-        rumps.notification(
-            "Update available",
-            f"{APP_NAME} {latest.version}",
-            "Open the menu → Updates → Check for updates...",
-        )
-
     def _check_for_updates(self, _: rumps.MenuItem) -> None:
-        result = check_for_updates(force=True)
-        if result.error:
-            rumps.alert(f"Could not check for updates:\n\n{result.error}", "Updates")
+        if self._native_updater.check_now():
             return
-        latest = result.latest
-        if latest is None:
-            rumps.alert("No release information found.", "Updates")
-            return
-        if not result.update_available:
-            rumps.alert(f"You are on the latest version ({__version__}).", "Updates")
-            return
-
-        notes = latest.release_notes
-        if len(notes) > 400:
-            notes = notes[:397] + "..."
-        message = f"Version {latest.version} is available.\n\nYou are on {__version__}."
-        if notes:
-            message += f"\n\n{notes}"
-
-        if not is_bundled_app():
-            if rumps.alert(message, "Update available", ok="Open download page", cancel="Later") == 1:
-                subprocess.run(["open", release_page_url()], check=False, timeout=5)
-            return
-
-        if rumps.alert(message, "Update available", ok="Download and install", cancel="Later") != 1:
-            return
-
-        try:
-            target = download_and_install(latest)
-        except Exception as exc:
-            rumps.alert(f"Update failed:\n\n{exc}", "Updates")
-            return
-
         if rumps.alert(
-            f"Installed to:\n{target}\n\nRestart {APP_NAME} now?",
-            "Update installed",
-            ok="Restart",
+            f"Download the latest {APP_NAME} from the Trade Desky website.",
+            "Updates",
+            ok="Open download page",
             cancel="Later",
         ) == 1:
-            subprocess.Popen(["open", "-n", target], start_new_session=True)
-            self._stop_thread.set()
-            rumps.quit_application()
+            subprocess.run(["open", DOWNLOAD_PAGE_URL], check=False, timeout=5)
 
     @rumps.clicked("Quit")
     def quit_app(self, _: rumps.MenuItem) -> None:
         self._stop_thread.set()
+        self._native_updater.cleanup()
         rumps.quit_application()
 
 

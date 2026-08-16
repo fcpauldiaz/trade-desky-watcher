@@ -20,7 +20,7 @@ from pathlib import Path
 from typing import Callable
 
 from notification_watcher.config import get_app_logger, get_config_dir
-from notification_watcher.product import APP_NAME, APP_NAME_COMPACT, GITHUB_REPO, LEGACY_APP_NAME, LEGACY_APP_NAME_COMPACT
+from notification_watcher.product import APP_NAME, APP_NAME_COMPACT, DOWNLOAD_PAGE_URL, GITHUB_REPO, LEGACY_APP_NAME, LEGACY_APP_NAME_COMPACT
 from notification_watcher.version import __version__
 
 USER_AGENT = f"{APP_NAME_COMPACT}/{__version__}"
@@ -315,7 +315,7 @@ def download_and_install(release: ReleaseInfo) -> str:
 
 
 def release_page_url() -> str:
-    return f"https://github.com/{GITHUB_REPO}/releases/latest"
+    return DOWNLOAD_PAGE_URL
 
 
 def schedule_background_checks(

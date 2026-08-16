@@ -62,30 +62,39 @@ Settings from the previous **Notification Watcher** folder are moved automatical
 ```bash
 pip install -r requirements-app.txt
 python3 scripts/generate_icons.py
+python3 scripts/fetch_update_frameworks.py --sparkle
 python3 setup.py py2app
 ./create_dmg.sh
 ```
 
-Output: `dist/Trade Desky Watcher.app`, `dist/TradeDeskyWatcher-1.3.0.dmg`
+Output: `dist/Trade Desky Watcher.app`, `dist/TradeDeskyWatcher-1.4.0.dmg`
 
-### Windows .exe
+### Windows installer and portable zip
 
 ```bash
 pip install -r requirements-windows.txt
 python scripts/generate_icons.py
+python scripts/fetch_update_frameworks.py --winsparkle
 pyinstaller notification_watcher.spec
+python scripts/build_windows_installer.py
 ```
 
-Output: `dist/TradeDeskyWatcher/TradeDeskyWatcher.exe`
+Output:
+
+- `dist/TradeDeskyWatcher/TradeDeskyWatcher.exe` (portable folder)
+- `dist/TradeDeskyWatcher-1.4.0-setup.exe` (per-user NSIS installer used by auto-update)
+
+`build_windows_installer.py` requires [NSIS](https://nsis.sourceforge.io/) (`choco install nsis`).
 
 ## CI artifacts
 
 See [INSTALL.md](INSTALL.md) for end-user setup (macOS FDA, Windows, sign-in).
 
-GitHub Actions runs tests on every push/PR. On pushes to `main`, it also builds macOS and Windows artifacts, creates a **`v{version}` tag** from [`notification_watcher/version.py`](notification_watcher/version.py), and publishes a [GitHub Release](https://github.com/fcpauldiaz/trade-desky-watcher/releases) with download links for:
+GitHub Actions runs tests on every push/PR. On pushes to `main`, it builds macOS and Windows artifacts, then publishes **public downloads** to [tradedesky.chapilabs.com/download](https://tradedesky.chapilabs.com/download) (Coolify-hosted, not GitHub Releases):
 
-- `TradeDeskyWatcher-{version}.dmg` (macOS)
-- `TradeDeskyWatcher-{version}-win.zip` (Windows)
+- `TradeDeskyWatcher.dmg` / versioned DMG (macOS)
+- `TradeDeskyWatcher-setup.exe` / versioned setup (Windows)
+- `appcast.xml` (Sparkle / WinSparkle feed, Ed25519-signed)
 
 Bump `__version__` in `notification_watcher/version.py` before merging to `main` to publish a new release tag.
 
@@ -138,7 +147,7 @@ SIGN_IDENTITY="Developer ID Application: Your Name" ./scripts/sign_and_notarize_
 ### Windows
 
 1. Quit the tray app.
-2. Delete the install folder.
+2. Delete `%LOCALAPPDATA%\Programs\TradeDeskyWatcher` (or your portable folder).
 3. Remove `%APPDATA%\Trade Desky Watcher\`.
 4. Remove the `TradeDeskyWatcher` entry from Registry → `HKCU\Software\Microsoft\Windows\CurrentVersion\Run` if present.
 
@@ -148,13 +157,13 @@ See [PRIVACY.md](PRIVACY.md). No telemetry.
 
 ## Auto-update
 
-Bundled macOS and Windows builds check [GitHub Releases](https://github.com/fcpauldiaz/trade-desky-watcher/releases) for updates:
+Bundled macOS and Windows builds use **Sparkle 2** and **WinSparkle** with a signed `appcast.xml` on this site (`https://tradedesky.chapilabs.com/desktop/appcast.xml`):
 
-- **On startup** (after 60 seconds) and **once per day**
+- **On startup** and **once per day** (native updater)
 - **Manual check**: menu bar / tray → **Updates → Check for updates...**
-- **macOS**: downloads the DMG, installs to `/Applications`, offers restart
-- **Windows**: downloads the zip, applies on quit via a small updater script, then relaunches
-- **Running from source**: opens the release download page instead of installing in place
+- **macOS**: Sparkle downloads the DMG from the Trade Desky site and replaces the app
+- **Windows**: WinSparkle downloads `TradeDeskyWatcher-*-setup.exe` from the site and runs the silent per-user installer
+- **Running from source** (or if Sparkle/WinSparkle is not bundled): opens [the download page](https://tradedesky.chapilabs.com/download)
 
 Disable automatic checks in `config.json`:
 
@@ -162,7 +171,7 @@ Disable automatic checks in `config.json`:
 { "check_for_updates": false }
 ```
 
-CI also publishes `appcast.xml` on each release for optional future [Sparkle](https://sparkle-project.org/) integration (`SUFeedURL` is set in the macOS app plist).
+Release signing uses the `SPARKLE_ED_PRIVATE_KEY` GitHub Actions secret (32-byte Ed25519 seed, base64). The matching public key is `SUPublicEDKey` in the macOS plist and `win_sparkle_set_eddsa_public_key` on Windows.
 
 ## License
 

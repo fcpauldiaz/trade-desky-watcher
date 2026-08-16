@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.4.0
+
+- Sparkle 2 auto-update on macOS and WinSparkle on Windows (signed appcast)
+- Windows per-user setup.exe installer for in-place updates; zip remains for portable install
+- Falls back to GitHub Releases updater when native libraries are not bundled
+
 ## 1.3.0
 
 - Rebranded to **Trade Desky Watcher** (app name, installers, GitHub repo `trade-desky-watcher`)
