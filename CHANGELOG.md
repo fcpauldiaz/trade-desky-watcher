@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.4.1
+
+- Use the Trade Desky app icon and Chapi Labs copyright in About / Get Info and Windows file properties
+
 ## 1.4.0
 
 - Sparkle 2 auto-update on macOS and WinSparkle on Windows (signed appcast)

@@ -1,44 +1,39 @@
-"""Generate tray icons for macOS (.icns) and Windows (.ico)."""
+"""Generate tray and bundle icons from the Trade Desky mark."""
 from pathlib import Path
 
-from PIL import Image, ImageDraw
+from PIL import Image
 
 ASSETS = Path(__file__).resolve().parent.parent / "assets"
+SOURCE_NAME = "icon-source.png"
+BUNDLE_SIZE = 1024
+ICO_SIZES = [(16, 16), (32, 32), (48, 48), (64, 64), (128, 128), (256, 256)]
 
 
-def _draw_icon(size: int) -> Image.Image:
-    img = Image.new("RGBA", (size, size), (0, 0, 0, 0))
-    draw = ImageDraw.Draw(img)
-    margin = size // 8
-    draw.ellipse(
-        (margin, margin, size - margin, size - margin),
-        fill=(66, 133, 244, 255),
-    )
-    cx = size // 2
-    draw.rectangle((cx - size // 16, size // 4, cx + size // 16, size // 2), fill="white")
-    draw.ellipse(
-        (cx - size // 8, size // 2, cx + size // 8, size * 5 // 8),
-        fill="white",
-    )
-    return img
+def load_source(assets: Path) -> Image.Image:
+    source = assets / SOURCE_NAME
+    if not source.is_file():
+        raise FileNotFoundError(f"Missing {source}")
+    image = Image.open(source).convert("RGBA")
+    return image.resize((BUNDLE_SIZE, BUNDLE_SIZE), Image.Resampling.LANCZOS)
+
+
+def write_icons(assets: Path) -> tuple[Path, Path]:
+    assets.mkdir(parents=True, exist_ok=True)
+    base = load_source(assets)
+    png_path = assets / "icon.png"
+    base.save(png_path)
+    ico_path = assets / "icon.ico"
+    base.save(ico_path, format="ICO", sizes=ICO_SIZES)
+    icns_path = assets / "icon.icns"
+    try:
+        base.save(icns_path, format="ICNS")
+    except (ValueError, OSError, KeyError):
+        base.resize((256, 256), Image.Resampling.LANCZOS).save(assets / "icon.icns.png")
+    return png_path, ico_path
 
 
 def main() -> None:
-    ASSETS.mkdir(parents=True, exist_ok=True)
-    base = _draw_icon(512)
-    png_path = ASSETS / "icon.png"
-    base.save(png_path)
-    ico_path = ASSETS / "icon.ico"
-    base.save(
-        ico_path,
-        format="ICO",
-        sizes=[(16, 16), (32, 32), (48, 48), (64, 64), (128, 128), (256, 256)],
-    )
-    icns_path = ASSETS / "icon.icns"
-    try:
-        base.save(icns_path, format="ICNS")
-    except Exception:
-        base.resize((256, 256)).save(ASSETS / "icon.icns.png")
+    png_path, ico_path = write_icons(ASSETS)
     print(f"Wrote {png_path}, {ico_path}")
 
 

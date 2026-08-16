@@ -16,7 +16,7 @@ from notification_watcher.login import is_launch_at_login_enabled, open_full_dis
 from notification_watcher.macos import format_delivered_date, get_notification_db_path
 from notification_watcher.platform import get_backend
 from notification_watcher.native_update import start_native_or_github
-from notification_watcher.product import APP_NAME, DOWNLOAD_PAGE_URL
+from notification_watcher.product import APP_NAME, DOWNLOAD_PAGE_URL, apply_macos_app_identity
 from notification_watcher.version import __version__
 from notification_watcher.watcher import watch
 
@@ -36,12 +36,16 @@ ASSETS_DIR = Path(__file__).resolve().parent / "assets"
 class NotificationWatcherApp(rumps.App):
     def __init__(self) -> None:
         icon = ASSETS_DIR / "icon.icns"
+        if not icon.exists():
+            icon = ASSETS_DIR / "icon.png"
+        icon_path = icon if icon.exists() else None
         super().__init__(
             APP_NAME,
-            icon=str(icon) if icon.exists() else None,
-            title=None if icon.exists() else "NC",
+            icon=str(icon_path) if icon_path else None,
+            title=None if icon_path else "NC",
             quit_button=None,
         )
+        apply_macos_app_identity(icon_path, __version__)
         self._config = load_config()
         self._db_path: Path | None = get_notification_db_path()
         self._poll_seconds = self._config.poll_seconds

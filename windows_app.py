@@ -40,14 +40,13 @@ ASSETS_DIR = Path(__file__).resolve().parent / "assets"
 
 
 def _load_icon() -> Image.Image:
-    ico = ASSETS_DIR / "icon.ico"
-    if ico.exists():
-        return Image.open(ico)
-    img = Image.new("RGBA", (64, 64), (0, 0, 0, 0))
+    for name in ("icon.ico", "icon.png"):
+        path = ASSETS_DIR / name
+        if path.exists():
+            return Image.open(path)
+    img = Image.new("RGBA", (64, 64), (250, 204, 21, 255))
     draw = ImageDraw.Draw(img)
-    draw.ellipse((8, 8, 56, 56), fill=(66, 133, 244, 255))
-    draw.rectangle((30, 18, 34, 40), fill="white")
-    draw.ellipse((26, 40, 38, 50), fill="white")
+    draw.rectangle((2, 2, 61, 61), outline=(0, 0, 0, 255), width=4)
     return img
 
 

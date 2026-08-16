@@ -2,7 +2,7 @@ from pathlib import Path
 
 from setuptools import setup
 
-from notification_watcher.product import APP_NAME, APPCAST_URL, BUNDLE_ID, SPARKLE_ED_PUBLIC_KEY
+from notification_watcher.product import APP_NAME, APPCAST_URL, SPARKLE_ED_PUBLIC_KEY, macos_bundle_plist
 from notification_watcher.version import __version__
 
 APP = ["notification_app.py"]
@@ -14,13 +14,7 @@ OPTIONS = {
     "packages": ["rumps", "objc", "Foundation", "AppKit"],
     "strip": False,
     "plist": {
-        "CFBundleName": APP_NAME,
-        "CFBundleDisplayName": APP_NAME,
-        "CFBundleIdentifier": BUNDLE_ID,
-        "CFBundleVersion": __version__,
-        "CFBundleShortVersionString": __version__,
-        "LSUIElement": True,
-        "NSHighResolutionCapable": True,
+        **macos_bundle_plist(__version__),
         "SUFeedURL": APPCAST_URL,
         "SUPublicEDKey": SPARKLE_ED_PUBLIC_KEY,
         "SUEnableAutomaticChecks": True,

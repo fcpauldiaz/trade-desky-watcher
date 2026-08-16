@@ -45,6 +45,12 @@ warn-*.txt
 vendor/*
 !vendor/.gitkeep
 
+# Generated from assets/icon-source.png
+assets/icon.png
+assets/icon.ico
+assets/icon.icns
+assets/icon.icns.png
+
 # Logs and local data
 *.log
 *.sqlite

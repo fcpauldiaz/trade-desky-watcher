@@ -48,7 +48,7 @@ def fetch_sparkle() -> Path:
     target = VENDOR / "Sparkle.framework"
     if target.exists():
         shutil.rmtree(target)
-    shutil.copytree(framework, target)
+    shutil.copytree(framework, target, symlinks=True)
     print(f"Sparkle.framework -> {target}")
     return target
 

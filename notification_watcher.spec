@@ -1,12 +1,18 @@
 # -*- mode: python ; coding: utf-8 -*-
 
-import sys
 from pathlib import Path
+
+from notification_watcher.product import windows_version_info_text
+from notification_watcher.version import __version__
 
 block_cipher = None
 root = Path(SPECPATH)
 winsparkle = root / "vendor" / "WinSparkle.dll"
 binaries = [(str(winsparkle), ".")] if winsparkle.is_file() else []
+
+version_file = root / "build" / "win_version_info.txt"
+version_file.parent.mkdir(parents=True, exist_ok=True)
+version_file.write_text(windows_version_info_text(__version__), encoding="utf-8")
 
 a = Analysis(
     ["windows_app.py"],
@@ -49,6 +55,7 @@ exe = EXE(
     codesign_identity=None,
     entitlements_file=None,
     icon=str(root / "assets" / "icon.ico"),
+    version=str(version_file),
 )
 coll = COLLECT(
     exe,

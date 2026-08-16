@@ -7,6 +7,13 @@ OutFile "..\dist\TradeDeskyWatcher-${VERSION}-setup.exe"
 InstallDir "$LOCALAPPDATA\Programs\TradeDeskyWatcher"
 RequestExecutionLevel user
 SilentInstall silent
+VIProductVersion "${VERSION}.0"
+VIAddVersionKey "ProductName" "Trade Desky Watcher"
+VIAddVersionKey "CompanyName" "Chapi Labs"
+VIAddVersionKey "LegalCopyright" "Copyright 2026 Chapi Labs"
+VIAddVersionKey "FileDescription" "Trade Desky Watcher"
+VIAddVersionKey "FileVersion" "${VERSION}"
+VIAddVersionKey "ProductVersion" "${VERSION}"
 
 Section "Install"
   SetOutPath $INSTDIR
