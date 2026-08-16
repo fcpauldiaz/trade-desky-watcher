@@ -6,9 +6,11 @@ COMPANY_NAME = "Chapi Labs"
 LEGACY_APP_NAME = "Notification Watcher"
 LEGACY_APP_NAME_COMPACT = "NotificationWatcher"
 
+DOWNLOAD_BASE_URL = os.environ.get("TRADE_DOWNLOAD_BASE_URL", "https://tradedesky.chapilabs.com").rstrip("/")
+DOWNLOAD_PAGE_URL = f"{DOWNLOAD_BASE_URL}/download"
+DESKTOP_ASSETS_URL = f"{DOWNLOAD_BASE_URL}/desktop"
+APPCAST_URL = f"{DESKTOP_ASSETS_URL}/appcast.xml"
 GITHUB_REPO = "fcpauldiaz/trade-desky-watcher"
-RELEASES_URL = f"https://github.com/{GITHUB_REPO}/releases"
-APPCAST_URL = f"{RELEASES_URL}/latest/download/appcast.xml"
 
 BUNDLE_ID = "com.chapilabs.tradedesky.watcher"
 LEGACY_BUNDLE_ID = "com.notificationwatcher.app"

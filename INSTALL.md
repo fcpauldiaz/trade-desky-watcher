@@ -4,7 +4,7 @@ End-user setup for macOS and Windows.
 
 ## Download
 
-Get the latest release from [GitHub Releases](https://github.com/fcpauldiaz/trade-desky-watcher/releases):
+Get the latest release from [tradedesky.chapilabs.com/download](https://tradedesky.chapilabs.com/download):
 
 - **macOS:** `TradeDeskyWatcher-*.dmg`
 - **Windows:** `TradeDeskyWatcher-*-setup.exe` (recommended)

@@ -102,11 +102,18 @@ jobs:
           python scripts/generate_appcast.py \
             --version "$VERSION" \
             --dmg "$DMG" \
-            --dmg-url "https://github.com/${{ github.repository }}/releases/download/v${VERSION}/$(basename "$DMG")" \
+            --dmg-url "https://tradedesky.chapilabs.com/desktop/$(basename "$DMG")" \
             --win-setup "$SETUP" \
-            --win-setup-url "https://github.com/${{ github.repository }}/releases/download/v${VERSION}/$(basename "$SETUP")" \
+            --win-setup-url "https://tradedesky.chapilabs.com/desktop/$(basename "$SETUP")" \
             --sign \
             -o release/appcast.xml
+      - name: Publish assets to Trade Desky
+        env:
+          RECEIVER_API_URL: ${{ secrets.RECEIVER_API_URL }}
+          INTERNAL_API_SECRET: ${{ secrets.INTERNAL_API_SECRET }}
+        run: |
+          RECEIVER="${RECEIVER_API_URL:-https://trade-receiver.chapilabs.com}"
+          python scripts/publish_desktop_assets.py --receiver "$RECEIVER" --dir release
       - name: Create or move version tag
         if: startsWith(github.ref, 'refs/heads/')
         run: |
@@ -130,7 +137,9 @@ jobs:
             | Windows | `TradeDeskyWatcher-*-setup.exe` — per-user installer (used by auto-update) |
             | Windows (portable) | `TradeDeskyWatcher-*-win.zip` — extract and run `TradeDeskyWatcher.exe` |
 
-            Bundled builds update through Sparkle (macOS) and WinSparkle (Windows) using `appcast.xml`.
+            Public downloads: https://tradedesky.chapilabs.com/download
+
+            Bundled builds update through Sparkle (macOS) and WinSparkle (Windows) using this site's `appcast.xml`.
           files: release/*
           fail_on_unmatched_files: true
           make_latest: true

@@ -90,11 +90,10 @@ Output:
 
 See [INSTALL.md](INSTALL.md) for end-user setup (macOS FDA, Windows, sign-in).
 
-GitHub Actions runs tests on every push/PR. On pushes to `main`, it also builds macOS and Windows artifacts, creates a **`v{version}` tag** from [`notification_watcher/version.py`](notification_watcher/version.py), and publishes a [GitHub Release](https://github.com/fcpauldiaz/trade-desky-watcher/releases) with download links for:
+GitHub Actions runs tests on every push/PR. On pushes to `main`, it builds macOS and Windows artifacts, then publishes **public downloads** to [tradedesky.chapilabs.com/download](https://tradedesky.chapilabs.com/download) (Coolify-hosted, not GitHub Releases):
 
-- `TradeDeskyWatcher-{version}.dmg` (macOS)
-- `TradeDeskyWatcher-{version}-setup.exe` (Windows installer; auto-update)
-- `TradeDeskyWatcher-{version}-win.zip` (Windows portable)
+- `TradeDeskyWatcher.dmg` / versioned DMG (macOS)
+- `TradeDeskyWatcher-setup.exe` / versioned setup (Windows)
 - `appcast.xml` (Sparkle / WinSparkle feed, Ed25519-signed)
 
 Bump `__version__` in `notification_watcher/version.py` before merging to `main` to publish a new release tag.
@@ -158,13 +157,13 @@ See [PRIVACY.md](PRIVACY.md). No telemetry.
 
 ## Auto-update
 
-Bundled macOS and Windows builds use **Sparkle 2** and **WinSparkle** with a signed `appcast.xml` on GitHub Releases:
+Bundled macOS and Windows builds use **Sparkle 2** and **WinSparkle** with a signed `appcast.xml` on this site (`https://tradedesky.chapilabs.com/desktop/appcast.xml`):
 
 - **On startup** and **once per day** (native updater)
 - **Manual check**: menu bar / tray → **Updates → Check for updates...**
-- **macOS**: Sparkle downloads the DMG and replaces the app
-- **Windows**: WinSparkle downloads `TradeDeskyWatcher-*-setup.exe` and runs the silent per-user installer (`%LOCALAPPDATA%\Programs\TradeDeskyWatcher`)
-- **Running from source** (or if Sparkle/WinSparkle is not bundled): falls back to the GitHub Releases updater, which opens the download page instead of installing in place
+- **macOS**: Sparkle downloads the DMG from the Trade Desky site and replaces the app
+- **Windows**: WinSparkle downloads `TradeDeskyWatcher-*-setup.exe` from the site and runs the silent per-user installer
+- **Running from source** (or if Sparkle/WinSparkle is not bundled): opens [the download page](https://tradedesky.chapilabs.com/download)
 
 Disable automatic checks in `config.json`:
 

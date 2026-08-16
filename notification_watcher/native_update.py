@@ -51,17 +51,11 @@ class NativeUpdater:
 def start_native_or_github(
     *,
     automatic: bool,
-    on_github_update: Callable,
     on_shutdown: Callable[[], None] | None = None,
 ) -> NativeUpdater:
     native = NativeUpdater()
     if native.start(automatic=automatic, on_shutdown=on_shutdown):
         logger.info("Native updater started")
-        return native
-    if automatic:
-        from notification_watcher.updater import schedule_background_checks
-
-        schedule_background_checks(on_github_update, enabled=True)
     return native
 
 

@@ -4,7 +4,7 @@ from dataclasses import dataclass
 from datetime import datetime, timezone
 import xml.etree.ElementTree as ET
 
-from notification_watcher.product import APP_NAME, GITHUB_REPO
+from notification_watcher.product import APP_NAME, DOWNLOAD_PAGE_URL
 
 SPARKLE_NS = "http://www.andymatuschak.org/xml-namespaces/sparkle"
 DC_NS = "http://purl.org/dc/elements/1.1/"
@@ -36,11 +36,11 @@ def build_appcast(
     rss = ET.Element("rss", {"version": "2.0"})
     channel = ET.SubElement(rss, "channel")
     ET.SubElement(channel, "title").text = APP_NAME
-    ET.SubElement(channel, "link").text = f"https://github.com/{GITHUB_REPO}/releases/latest"
+    ET.SubElement(channel, "link").text = DOWNLOAD_PAGE_URL
     ET.SubElement(channel, "description").text = f"{APP_NAME} updates"
     ET.SubElement(channel, "language").text = "en"
 
-    notes = f"https://github.com/{GITHUB_REPO}/releases/tag/v{version}"
+    notes = DOWNLOAD_PAGE_URL
     for enclosure in enclosures:
         item = ET.SubElement(channel, "item")
         ET.SubElement(item, "title").text = f"Version {version} ({enclosure.os_name})"

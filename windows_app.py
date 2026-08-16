@@ -22,13 +22,7 @@ from notification_watcher.login import is_launch_at_login_enabled, set_launch_at
 from notification_watcher.platform import get_backend
 from notification_watcher.types import AppConfig
 from notification_watcher.native_update import start_native_or_github
-from notification_watcher.product import APP_NAME, APP_NAME_COMPACT
-from notification_watcher.updater import (
-    check_for_updates,
-    download_and_install,
-    is_bundled_app,
-    release_page_url,
-)
+from notification_watcher.product import APP_NAME, APP_NAME_COMPACT, DOWNLOAD_PAGE_URL
 from notification_watcher.version import __version__
 from notification_watcher.watcher import watch
 from notification_watcher.windows import format_delivered_date, get_notification_db_path
@@ -87,7 +81,6 @@ class WindowsNotificationApp:
         self._build_tray()
         self._native_updater = start_native_or_github(
             automatic=self._config.check_for_updates,
-            on_github_update=self._notify_update_available,
             on_shutdown=self._sparkle_shutdown,
         )
 
@@ -374,19 +367,6 @@ class WindowsNotificationApp:
             path.write_text("", encoding="utf-8")
         subprocess.run(["notepad.exe", str(path)], check=False)
 
-    def _notify_update_available(self, result) -> None:
-        latest = result.latest
-        if latest is None:
-            return
-        self._tk_root.after(
-            0,
-            lambda: messagebox.showinfo(
-                "Update available",
-                f"{APP_NAME} {latest.version} is available.\n\n"
-                "Open the tray menu → Updates → Check for updates...",
-            ),
-        )
-
     def _sparkle_shutdown(self) -> None:
         self._quitting_for_update = True
         self._tk_root.after(0, lambda: self._quit(self._icon, None))
@@ -394,48 +374,11 @@ class WindowsNotificationApp:
     def _check_for_updates(self, _icon, _item) -> None:
         if self._native_updater.check_now():
             return
-        result = check_for_updates(force=True)
-        if result.error:
-            messagebox.showerror("Updates", f"Could not check for updates:\n\n{result.error}")
-            return
-        latest = result.latest
-        if latest is None:
-            messagebox.showinfo("Updates", "No release information found.")
-            return
-        if not result.update_available:
-            messagebox.showinfo("Updates", f"You are on the latest version ({__version__}).")
-            return
-
-        notes = latest.release_notes
-        if len(notes) > 400:
-            notes = notes[:397] + "..."
-        message = f"Version {latest.version} is available.\n\nYou are on {__version__}."
-        if notes:
-            message += f"\n\n{notes}"
-
-        if not is_bundled_app():
-            if messagebox.askyesno("Update available", message + "\n\nOpen download page?"):
-                subprocess.run(["cmd", "/c", "start", "", release_page_url()], check=False)
-            return
-
-        if not messagebox.askyesno("Update available", message + "\n\nDownload and install now?"):
-            return
-
-        try:
-            script_or_target = download_and_install(latest)
-        except Exception as exc:
-            messagebox.showerror("Updates", f"Update failed:\n\n{exc}")
-            return
-
-        if sys.platform == "win32" and str(script_or_target).endswith(".bat"):
-            subprocess.Popen(
-                ["cmd", "/c", "start", "", "/min", str(script_or_target)],
-                creationflags=subprocess.DETACHED_PROCESS if hasattr(subprocess, "DETACHED_PROCESS") else 0,
-            )
-            self._quit(_icon, _item)
-            return
-
-        messagebox.showinfo("Updates", f"Installed to:\n{script_or_target}")
+        if messagebox.askyesno(
+            "Updates",
+            f"Download the latest {APP_NAME} from the Trade Desky website.\n\nOpen download page?",
+        ):
+            subprocess.run(["cmd", "/c", "start", "", DOWNLOAD_PAGE_URL], check=False)
 
     def _quit(self, _icon, _item) -> None:
         self._stop_thread.set()

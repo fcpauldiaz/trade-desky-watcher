@@ -40,6 +40,8 @@ def test_build_appcast_includes_macos_and_windows_enclosures():
     assert signatures == ["sig-mac", "sig-win"]
     assert "sparkle:os" in xml
     assert "sparkle:edSignature" in xml
+    assert "github.com" not in xml
+    assert "tradedesky.chapilabs.com/download" in xml
 
 
 def test_unsigned_enclosure_omits_ed_signature():
