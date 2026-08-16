@@ -4,8 +4,10 @@ import subprocess
 import sys
 from pathlib import Path
 
-LAUNCH_AGENT_ID = "com.notificationwatcher.app"
-REGISTRY_APP_NAME = "NotificationWatcher"
+from notification_watcher.product import APP_NAME_COMPACT, BUNDLE_ID, LEGACY_APP_NAME_COMPACT, LEGACY_BUNDLE_ID
+
+LAUNCH_AGENT_ID = BUNDLE_ID
+REGISTRY_APP_NAME = APP_NAME_COMPACT
 
 
 def _macos_app_path() -> Path | None:
@@ -14,12 +16,13 @@ def _macos_app_path() -> Path | None:
     return None
 
 
+def _plist_path(label: str) -> Path:
+    return Path.home() / "Library" / "LaunchAgents" / f"{label}.plist"
+
+
 def is_launch_at_login_enabled() -> bool:
     if sys.platform == "darwin":
-        plist_path = (
-            Path.home() / "Library" / "LaunchAgents" / f"{LAUNCH_AGENT_ID}.plist"
-        )
-        return plist_path.exists()
+        return _plist_path(LAUNCH_AGENT_ID).exists() or _plist_path(LEGACY_BUNDLE_ID).exists()
     if sys.platform == "win32":
         import winreg
 
@@ -28,8 +31,12 @@ def is_launch_at_login_enabled() -> bool:
                 winreg.HKEY_CURRENT_USER,
                 r"Software\Microsoft\Windows\CurrentVersion\Run",
             ) as key:
-                winreg.QueryValueEx(key, REGISTRY_APP_NAME)
-                return True
+                try:
+                    winreg.QueryValueEx(key, REGISTRY_APP_NAME)
+                    return True
+                except OSError:
+                    winreg.QueryValueEx(key, LEGACY_APP_NAME_COMPACT)
+                    return True
         except OSError:
             return False
     return False
@@ -43,20 +50,26 @@ def set_launch_at_login(enabled: bool, app_path: Path | None = None) -> None:
 
 
 def _set_macos_launch_at_login(enabled: bool, app_path: Path | None) -> None:
-    plist_path = Path.home() / "Library" / "LaunchAgents" / f"{LAUNCH_AGENT_ID}.plist"
+    current = _plist_path(LAUNCH_AGENT_ID)
+    legacy = _plist_path(LEGACY_BUNDLE_ID)
     if enabled:
         resolved = app_path or _macos_app_path()
         if resolved is None:
             return
-        plist_path.parent.mkdir(parents=True, exist_ok=True)
+        current.parent.mkdir(parents=True, exist_ok=True)
         plist = {
             "Label": LAUNCH_AGENT_ID,
             "ProgramArguments": ["open", "-a", str(resolved)],
             "RunAtLoad": True,
         }
-        plist_path.write_bytes(plistlib.dumps(plist))
-    elif plist_path.exists():
-        plist_path.unlink()
+        current.write_bytes(plistlib.dumps(plist))
+        if legacy.exists():
+            legacy.unlink()
+    else:
+        if current.exists():
+            current.unlink()
+        if legacy.exists():
+            legacy.unlink()
 
 
 def _set_windows_launch_at_login(enabled: bool, app_path: Path | None) -> None:
@@ -69,11 +82,16 @@ def _set_windows_launch_at_login(enabled: bool, app_path: Path | None) -> None:
         if enabled:
             exe = app_path or Path(sys.executable)
             winreg.SetValueEx(key, REGISTRY_APP_NAME, 0, winreg.REG_SZ, str(exe))
-        else:
             try:
-                winreg.DeleteValue(key, REGISTRY_APP_NAME)
+                winreg.DeleteValue(key, LEGACY_APP_NAME_COMPACT)
             except OSError:
                 pass
+        else:
+            for name in (REGISTRY_APP_NAME, LEGACY_APP_NAME_COMPACT):
+                try:
+                    winreg.DeleteValue(key, name)
+                except OSError:
+                    pass
 
 
 def open_full_disk_access_settings() -> None:

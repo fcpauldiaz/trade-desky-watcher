@@ -20,19 +20,18 @@ from pathlib import Path
 from typing import Callable
 
 from notification_watcher.config import get_app_logger, get_config_dir
+from notification_watcher.product import APP_NAME, APP_NAME_COMPACT, GITHUB_REPO, LEGACY_APP_NAME, LEGACY_APP_NAME_COMPACT
 from notification_watcher.version import __version__
 
-GITHUB_REPO = "fcpauldiaz/discord-data-scraper"
-USER_AGENT = f"NotificationWatcher/{__version__}"
+USER_AGENT = f"{APP_NAME_COMPACT}/{__version__}"
 UPDATE_CHECK_INTERVAL_SECONDS = 86_400
 STARTUP_CHECK_DELAY_SECONDS = 60
-APPCAST_URL = (
-    f"https://github.com/{GITHUB_REPO}/releases/latest/download/appcast.xml"
-)
 
 _VERSION_RE = re.compile(r"(\d+)\.(\d+)\.(\d+)")
-_MAC_DMG_RE = re.compile(r"NotificationWatcher-[\d.]+\.dmg$", re.I)
-_WIN_ZIP_RE = re.compile(r"NotificationWatcher-[\d.]+-win\.zip$", re.I)
+_MAC_DMG_RE = re.compile(rf"{APP_NAME_COMPACT}-[\d.]+\.dmg$", re.I)
+_MAC_DMG_LEGACY_RE = re.compile(rf"{LEGACY_APP_NAME_COMPACT}-[\d.]+\.dmg$", re.I)
+_WIN_ZIP_RE = re.compile(rf"{APP_NAME_COMPACT}-[\d.]+-win\.zip$", re.I)
+_WIN_ZIP_LEGACY_RE = re.compile(rf"{LEGACY_APP_NAME_COMPACT}-[\d.]+-win\.zip$", re.I)
 
 logger = get_app_logger()
 
@@ -147,11 +146,11 @@ def fetch_latest_release() -> ReleaseInfo:
         assets = []
 
     if sys.platform == "darwin":
-        asset = _pick_asset(assets, _MAC_DMG_RE)
+        asset = _pick_asset(assets, _MAC_DMG_RE) or _pick_asset(assets, _MAC_DMG_LEGACY_RE)
         if asset is None:
             raise RuntimeError("No macOS DMG found on latest release")
     elif sys.platform == "win32":
-        asset = _pick_asset(assets, _WIN_ZIP_RE)
+        asset = _pick_asset(assets, _WIN_ZIP_RE) or _pick_asset(assets, _WIN_ZIP_LEGACY_RE)
         if asset is None:
             raise RuntimeError("No Windows zip found on latest release")
     else:
@@ -222,7 +221,7 @@ def install_macos_update(dmg_path: Path) -> str:
         )
         source_app = _find_app_in_dir(mount_point)
         if source_app is None:
-            raise RuntimeError("DMG does not contain Notification Watcher.app")
+            raise RuntimeError(f"DMG does not contain {APP_NAME}.app")
 
         target = Path("/Applications") / source_app.name
         if target.exists():
@@ -231,6 +230,9 @@ def install_macos_update(dmg_path: Path) -> str:
                 shutil.rmtree(backup)
             shutil.move(str(target), str(backup))
         shutil.copytree(source_app, target)
+        leftover = Path("/Applications") / f"{LEGACY_APP_NAME}.app"
+        if leftover.exists() and leftover != target:
+            shutil.rmtree(leftover, ignore_errors=True)
         return str(target)
     finally:
         subprocess.run(["hdiutil", "detach", str(mount_point), "-quiet"], check=False, timeout=60)
@@ -287,7 +289,9 @@ def install_windows_update(zip_path: Path) -> Path:
     try:
         with zipfile.ZipFile(zip_path) as archive:
             archive.extractall(extract_dir)
-        payload_dir = extract_dir / "NotificationWatcher"
+        payload_dir = extract_dir / APP_NAME_COMPACT
+        if not payload_dir.is_dir():
+            payload_dir = extract_dir / LEGACY_APP_NAME_COMPACT
         if not payload_dir.is_dir():
             children = [p for p in extract_dir.iterdir() if p.is_dir()]
             if len(children) == 1:

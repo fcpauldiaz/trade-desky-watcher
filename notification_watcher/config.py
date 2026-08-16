@@ -1,13 +1,13 @@
 import json
 import logging
 import os
+import shutil
 import sys
 from pathlib import Path
 
-from notification_watcher.product import DEFAULT_INGEST_URL, DEFAULT_PLATFORM_URL
+from notification_watcher.product import APP_NAME, DEFAULT_INGEST_URL, DEFAULT_PLATFORM_URL, LEGACY_APP_NAME
 from notification_watcher.types import AppConfig
 
-CONFIG_DIR_NAME = "Notification Watcher"
 CONFIG_FILENAME = "config.json"
 LOG_FILENAME = "notification_watcher.log"
 
@@ -16,8 +16,17 @@ _APP_LOGGER: logging.Logger | None = None
 
 def get_config_dir() -> Path:
     if sys.platform == "darwin":
-        return Path.home() / "Library" / "Application Support" / CONFIG_DIR_NAME
-    return Path(os.environ.get("APPDATA", Path.home())) / CONFIG_DIR_NAME
+        base = Path.home() / "Library" / "Application Support"
+    else:
+        base = Path(os.environ.get("APPDATA", Path.home()))
+    current = base / APP_NAME
+    legacy = base / LEGACY_APP_NAME
+    if not current.exists() and legacy.exists():
+        try:
+            shutil.move(str(legacy), str(current))
+        except OSError:
+            return legacy
+    return current
 
 
 def get_config_path() -> Path:

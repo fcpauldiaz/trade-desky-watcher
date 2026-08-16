@@ -3,7 +3,7 @@ from pathlib import Path
 
 import pytest
 
-from notification_watcher.config import default_config, load_config, save_config
+from notification_watcher.config import default_config, get_config_dir, load_config, save_config
 from notification_watcher.types import AppConfig
 
 
@@ -53,3 +53,17 @@ def test_load_config_invalid_json(tmp_path: Path, monkeypatch):
     path.write_text("{not json", encoding="utf-8")
     monkeypatch.setattr("notification_watcher.config.get_config_path", lambda: path)
     assert load_config() == default_config()
+
+
+def test_migrates_legacy_config_dir(tmp_path: Path, monkeypatch):
+    monkeypatch.setattr("notification_watcher.config.sys.platform", "darwin")
+    monkeypatch.setattr("notification_watcher.config.Path.home", lambda: tmp_path)
+    support = tmp_path / "Library" / "Application Support"
+    legacy = support / "Notification Watcher"
+    legacy.mkdir(parents=True)
+    (legacy / "config.json").write_text("{}", encoding="utf-8")
+
+    moved = get_config_dir()
+    assert moved.name == "Trade Desky Watcher"
+    assert (moved / "config.json").exists()
+    assert not legacy.exists()

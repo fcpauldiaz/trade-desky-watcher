@@ -1,11 +1,12 @@
 #!/usr/bin/env bash
-# Create a DMG for distributing Notification Watcher. Run after: python3 setup.py py2app
+# Create a DMG for distributing Trade Desky Watcher. Run after: python3 setup.py py2app
 set -euo pipefail
-APP_NAME="Notification Watcher"
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 DIST_DIR="${SCRIPT_DIR}/dist"
+APP_NAME="$(python3 -c "from notification_watcher.product import APP_NAME; print(APP_NAME)")"
+APP_NAME_COMPACT="$(python3 -c "from notification_watcher.product import APP_NAME_COMPACT; print(APP_NAME_COMPACT)")"
 VERSION="$(python3 -c "from notification_watcher.version import __version__; print(__version__)")"
-DMG_NAME="NotificationWatcher-${VERSION}"
+DMG_NAME="${APP_NAME_COMPACT}-${VERSION}"
 STAGING="${DIST_DIR}/dmg-staging"
 DMG_PATH="${DIST_DIR}/${DMG_NAME}.dmg"
 

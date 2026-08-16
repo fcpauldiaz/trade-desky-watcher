@@ -21,6 +21,7 @@ from notification_watcher.config import get_app_logger, get_log_path, load_confi
 from notification_watcher.login import is_launch_at_login_enabled, set_launch_at_login
 from notification_watcher.platform import get_backend
 from notification_watcher.types import AppConfig
+from notification_watcher.product import APP_NAME, APP_NAME_COMPACT
 from notification_watcher.updater import (
     check_for_updates,
     download_and_install,
@@ -74,7 +75,7 @@ class WindowsNotificationApp:
 
         if self._db_path is None or not self._db_path.exists():
             messagebox.showinfo(
-                "Notification Watcher",
+                APP_NAME,
                 "Notification database not found yet.\n\n"
                 "The app will watch:\n"
                 "%LOCALAPPDATA%\\Microsoft\\Windows\\Notifications\\wpndatabase.db\n\n"
@@ -176,9 +177,9 @@ class WindowsNotificationApp:
 
     def _build_tray(self) -> None:
         self._icon = pystray.Icon(
-            "NotificationWatcher",
+            APP_NAME_COMPACT,
             _load_icon(),
-            "Notification Watcher",
+            APP_NAME,
             menu=self._build_menu,
         )
 
@@ -377,7 +378,7 @@ class WindowsNotificationApp:
             0,
             lambda: messagebox.showinfo(
                 "Update available",
-                f"Notification Watcher {latest.version} is available.\n\n"
+                f"{APP_NAME} {latest.version} is available.\n\n"
                 "Open the tray menu → Updates → Check for updates...",
             ),
         )

@@ -7,7 +7,7 @@ param(
 
 $ErrorActionPreference = "Stop"
 $Root = Split-Path -Parent $PSScriptRoot
-$ExePath = Join-Path $Root "dist\NotificationWatcher\NotificationWatcher.exe"
+$ExePath = Join-Path $Root "dist\TradeDeskyWatcher\TradeDeskyWatcher.exe"
 
 if (-not (Test-Path $ExePath)) {
     Write-Error "Build first: pyinstaller notification_watcher.spec"

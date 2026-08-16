@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.3.0
+
+- Rebranded to **Trade Desky Watcher** (app name, installers, GitHub repo `trade-desky-watcher`)
+- Existing config and launch-at-login settings migrate from Notification Watcher
+
 ## 1.2.0
 
 - GitHub Releases auto-update for bundled macOS and Windows builds

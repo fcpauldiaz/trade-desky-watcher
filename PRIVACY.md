@@ -1,6 +1,6 @@
 # Privacy Policy
 
-Notification Watcher is a local utility. It does not operate a cloud service or collect analytics.
+Trade Desky Watcher is a local utility. It does not operate a cloud service or collect analytics.
 
 ## What the app reads
 
@@ -9,7 +9,7 @@ Notification Watcher is a local utility. It does not operate a cloud service or 
 
 ## What leaves your device
 
-- When signed in to Trade Platform, matching notification data is sent via HTTPS POST to the platform ingest endpoint.
+- When signed in to Trade Desky, matching notification data is sent via HTTPS POST to the platform ingest endpoint.
 - No data is sent if you are not signed in.
 
 ## What is stored locally
@@ -19,7 +19,7 @@ Notification Watcher is a local utility. It does not operate a cloud service or 
 
 ## Third parties
 
-When signed in, notifications are sent to your Trade Platform ingest endpoint. The platform privacy policy applies to that data.
+When signed in, notifications are sent to your Trade Desky ingest endpoint. The platform privacy policy applies to that data.
 
 ## Telemetry
 

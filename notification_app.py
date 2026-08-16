@@ -15,6 +15,7 @@ from notification_watcher.config import get_app_logger, get_log_path, load_confi
 from notification_watcher.login import is_launch_at_login_enabled, open_full_disk_access_settings, set_launch_at_login
 from notification_watcher.macos import format_delivered_date, get_notification_db_path
 from notification_watcher.platform import get_backend
+from notification_watcher.product import APP_NAME
 from notification_watcher.updater import (
     check_for_updates,
     download_and_install,
@@ -42,7 +43,7 @@ class NotificationWatcherApp(rumps.App):
     def __init__(self) -> None:
         icon = ASSETS_DIR / "icon.icns"
         super().__init__(
-            "Notification Watcher",
+            APP_NAME,
             icon=str(icon) if icon.exists() else None,
             title=None if icon.exists() else "NC",
             quit_button=None,
@@ -148,7 +149,7 @@ class NotificationWatcherApp(rumps.App):
             self._db_path = path
             self._update_status_from_db()
             rumps.notification(
-                "Notification Watcher",
+                APP_NAME,
                 "Full Disk Access granted",
                 "Now watching notifications.",
             )
@@ -280,7 +281,7 @@ class NotificationWatcherApp(rumps.App):
         self._config.account_email = result["account_email"]
         save_config(self._config)
         self._refresh_account_status()
-        rumps.notification("Notification Watcher", "Signed in", result["account_email"])
+        rumps.notification(APP_NAME, "Signed in", result["account_email"])
 
     def _sign_out(self, _: rumps.MenuItem) -> None:
         if not self._config.is_signed_in():
@@ -290,7 +291,7 @@ class NotificationWatcherApp(rumps.App):
         self._config.account_email = None
         save_config(self._config)
         self._update_status_from_db()
-        rumps.notification("Notification Watcher", "Signed out", "")
+        rumps.notification(APP_NAME, "Signed out", "")
 
     def _test_connection(self, _: rumps.MenuItem) -> None:
         ok, message = ingest_sender.send_test_connection()
@@ -357,7 +358,7 @@ class NotificationWatcherApp(rumps.App):
             return
         rumps.notification(
             "Update available",
-            f"Notification Watcher {latest.version}",
+            f"{APP_NAME} {latest.version}",
             "Open the menu → Updates → Check for updates...",
         )
 
@@ -396,7 +397,7 @@ class NotificationWatcherApp(rumps.App):
             return
 
         if rumps.alert(
-            f"Installed to:\n{target}\n\nRestart Notification Watcher now?",
+            f"Installed to:\n{target}\n\nRestart {APP_NAME} now?",
             "Update installed",
             ok="Restart",
             cancel="Later",
@@ -416,7 +417,7 @@ def main() -> None:
     if path is None or not path.exists():
         rumps.alert(
             "Full Disk Access required",
-            "Notification Watcher needs Full Disk Access to read notifications.\n\n"
+            f"{APP_NAME} needs Full Disk Access to read notifications.\n\n"
             "System Settings will open. Add this app (or Terminal) to Full Disk Access.",
         )
         open_full_disk_access_settings()

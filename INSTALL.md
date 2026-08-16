@@ -1,19 +1,19 @@
-# Notification Watcher — Install Guide
+# Trade Desky Watcher — Install Guide
 
 End-user setup for macOS and Windows.
 
 ## Download
 
-Get the latest release from [GitHub Releases](https://github.com/fcpauldiaz/discord-data-scraper/releases):
+Get the latest release from [GitHub Releases](https://github.com/fcpauldiaz/trade-desky-watcher/releases):
 
-- **macOS:** `NotificationWatcher.dmg`
-- **Windows:** `NotificationWatcher.zip`
+- **macOS:** `TradeDeskyWatcher-*.dmg`
+- **Windows:** `TradeDeskyWatcher-*-win.zip`
 
 ## macOS
 
-1. Open the DMG and drag **Notification Watcher** to Applications.
+1. Open the DMG and drag **Trade Desky Watcher** to Applications.
 2. Launch the app from Applications.
-3. Grant **Full Disk Access** (System Settings → Privacy & Security → Full Disk Access → add Notification Watcher).
+3. Grant **Full Disk Access** (System Settings → Privacy & Security → Full Disk Access → add Trade Desky Watcher).
 4. Menu bar icon should show **Status: Watching** when ready.
 
 ### macOS Sequoia / Tahoe
@@ -22,15 +22,15 @@ If notifications are not detected, remove and re-add Full Disk Access, then rest
 
 ## Windows
 
-1. Extract the zip to a folder (e.g. `C:\NotificationWatcher`).
-2. Run `NotificationWatcher.exe`.
+1. Extract the zip to a folder (e.g. `C:\TradeDeskyWatcher`).
+2. Run `TradeDeskyWatcher.exe`.
 3. If SmartScreen warns about an unsigned app, choose **More info → Run anyway** (releases are unsigned until code signing is configured in CI).
 
-## Connect to Trade Platform
+## Connect to Trade Desky
 
-1. Sign up at your Trade Platform URL and subscribe to Pro.
+1. Sign up at your Trade Desky URL and subscribe to Pro.
 2. Connect Tradier or Schwab under **Connections**, complete onboarding.
-3. In Notification Watcher: **Account → Sign in…** with the same email and password.
+3. In Trade Desky Watcher: **Account → Sign in…** with the same email and password.
 4. Use **Account → Test connection** to verify delivery.
 
 No URL to copy — the desktop app connects automatically after sign-in.
@@ -39,8 +39,8 @@ No URL to copy — the desktop app connects automatically after sign-in.
 
 Stored in the app support directory:
 
-- macOS: `~/Library/Application Support/Notification Watcher/config.json`
-- Windows: `%APPDATA%\Notification Watcher\config.json`
+- macOS: `~/Library/Application Support/Trade Desky Watcher/config.json`
+- Windows: `%APPDATA%\Trade Desky Watcher\config.json`
 
 ```json
 {

@@ -15,7 +15,8 @@ ROOT = Path(__file__).resolve().parent.parent
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
-from notification_watcher.updater import GITHUB_REPO, USER_AGENT, _MAC_DMG_RE, _pick_asset
+from notification_watcher.product import APP_NAME, GITHUB_REPO
+from notification_watcher.updater import USER_AGENT, _MAC_DMG_RE, _MAC_DMG_LEGACY_RE, _pick_asset
 
 SPARKLE_NS = "http://www.andymatuschak.org/xml-namespaces/sparkle"
 DC_NS = "http://purl.org/dc/elements/1.1/"
@@ -48,9 +49,9 @@ def build_appcast(
     ET.register_namespace("dc", DC_NS)
     rss = ET.Element("rss", {"version": "2.0"})
     channel = ET.SubElement(rss, "channel")
-    ET.SubElement(channel, "title").text = "Notification Watcher"
+    ET.SubElement(channel, "title").text = APP_NAME
     ET.SubElement(channel, "link").text = f"https://github.com/{GITHUB_REPO}/releases/latest"
-    ET.SubElement(channel, "description").text = "Notification Watcher updates"
+    ET.SubElement(channel, "description").text = f"{APP_NAME} updates"
     ET.SubElement(channel, "language").text = "en"
 
     item = ET.SubElement(channel, "item")
@@ -89,7 +90,7 @@ def main() -> int:
         assets = release.get("assets", [])
         if not isinstance(assets, list):
             assets = []
-        asset = _pick_asset(assets, _MAC_DMG_RE)
+        asset = _pick_asset(assets, _MAC_DMG_RE) or _pick_asset(assets, _MAC_DMG_LEGACY_RE)
         if asset is None:
             raise RuntimeError("Latest release has no macOS DMG asset")
         xml = build_appcast(

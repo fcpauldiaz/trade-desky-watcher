@@ -32,7 +32,7 @@ jobs:
       - run: chmod +x create_dmg.sh && ./create_dmg.sh
       - uses: actions/upload-artifact@v7
         with:
-          name: notification-watcher-macos
+          name: trade-desky-watcher-macos
           path: dist/*.dmg
 
   build-win:
@@ -51,10 +51,10 @@ jobs:
         shell: pwsh
         run: |
           $version = python -c "from notification_watcher.version import __version__; print(__version__)"
-          Compress-Archive -Path dist/NotificationWatcher -DestinationPath "dist/NotificationWatcher-$version-win.zip"
+          Compress-Archive -Path dist/TradeDeskyWatcher -DestinationPath "dist/TradeDeskyWatcher-$version-win.zip"
       - uses: actions/upload-artifact@v7
         with:
-          name: notification-watcher-windows
+          name: trade-desky-watcher-windows
           path: dist/*.zip
 
   release:
@@ -107,15 +107,15 @@ jobs:
         uses: softprops/action-gh-release@v3
         with:
           tag_name: ${{ steps.version.outputs.tag }}
-          name: Notification Watcher ${{ steps.version.outputs.tag }}
+          name: Trade Desky Watcher ${{ steps.version.outputs.tag }}
           generate_release_notes: true
           body: |
             ## Downloads
 
             | Platform | File |
             |----------|------|
-            | macOS | `NotificationWatcher-*.dmg` — drag the app to Applications |
-            | Windows | `NotificationWatcher-*-win.zip` — extract and run `NotificationWatcher.exe` |
+            | macOS | `TradeDeskyWatcher-*.dmg` — drag the app to Applications |
+            | Windows | `TradeDeskyWatcher-*-win.zip` — extract and run `TradeDeskyWatcher.exe` |
 
             Assets are attached below.
           files: release/*

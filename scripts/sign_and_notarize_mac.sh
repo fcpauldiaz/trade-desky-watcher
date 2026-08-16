@@ -2,8 +2,9 @@
 # Sign and notarize the macOS app locally. Requires Apple Developer credentials.
 set -euo pipefail
 
-APP_NAME="Notification Watcher"
 SCRIPT_DIR="$(cd "$(dirname "$0")/.." && pwd)"
+cd "${SCRIPT_DIR}"
+APP_NAME="$(python3 -c "from notification_watcher.product import APP_NAME; print(APP_NAME)")"
 APP_PATH="${SCRIPT_DIR}/dist/${APP_NAME}.app"
 SIGN_IDENTITY="${SIGN_IDENTITY:-Developer ID Application}"
 NOTARY_PROFILE="${NOTARY_PROFILE:-AC_NOTARY}"

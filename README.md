@@ -1,6 +1,6 @@
-# Notification Watcher
+# Trade Desky Watcher
 
-Cross-platform utility that watches OS notifications and forwards them to Trade Platform when signed in.
+Cross-platform utility that watches OS notifications and forwards them to Trade Desky when signed in.
 
 | Platform | Supported versions | Data source |
 |----------|-------------------|-------------|
@@ -13,7 +13,7 @@ Cross-platform utility that watches OS notifications and forwards them to Trade 
 - Recent notifications list with detail view
 - Configurable poll interval: 10 ms, 50 ms, 100 ms, 500 ms, 1 s
 - App filter (SQL LIKE) and Discord-only shortcut
-- Account sign-in to Trade Platform (no manual URLs to configure)
+- Account sign-in to Trade Desky (no manual URLs to configure)
 - Forwards alerts to the platform ingest endpoint automatically
 - Persistent settings, launch at login, local logs
 - CLI (`scraper.py`) for scripting
@@ -28,7 +28,7 @@ python3 scripts/generate_icons.py
 python3 notification_app.py
 ```
 
-Grant **Full Disk Access** to Terminal or Notification Watcher in System Settings → Privacy & Security.
+Grant **Full Disk Access** to Terminal or Trade Desky Watcher in System Settings → Privacy & Security.
 
 ### Windows (from source)
 
@@ -50,8 +50,10 @@ python3 scraper.py --no-ingest
 
 Config file location:
 
-- macOS: `~/Library/Application Support/Notification Watcher/config.json`
-- Windows: `%APPDATA%\Notification Watcher\config.json`
+- macOS: `~/Library/Application Support/Trade Desky Watcher/config.json`
+- Windows: `%APPDATA%\Trade Desky Watcher\config.json`
+
+Settings from the previous **Notification Watcher** folder are moved automatically on first launch.
 
 ## Build distributables
 
@@ -64,7 +66,7 @@ python3 setup.py py2app
 ./create_dmg.sh
 ```
 
-Output: `dist/Notification Watcher.app`, `dist/NotificationWatcher-1.1.0.dmg`
+Output: `dist/Trade Desky Watcher.app`, `dist/TradeDeskyWatcher-1.3.0.dmg`
 
 ### Windows .exe
 
@@ -74,16 +76,16 @@ python scripts/generate_icons.py
 pyinstaller notification_watcher.spec
 ```
 
-Output: `dist/NotificationWatcher/NotificationWatcher.exe`
+Output: `dist/TradeDeskyWatcher/TradeDeskyWatcher.exe`
 
 ## CI artifacts
 
 See [INSTALL.md](INSTALL.md) for end-user setup (macOS FDA, Windows, sign-in).
 
-GitHub Actions runs tests on every push/PR. On pushes to `main`, it also builds macOS and Windows artifacts, creates a **`v{version}` tag** from [`notification_watcher/version.py`](notification_watcher/version.py), and publishes a [GitHub Release](https://github.com/fcpauldiaz/discord-data-scraper/releases) with download links for:
+GitHub Actions runs tests on every push/PR. On pushes to `main`, it also builds macOS and Windows artifacts, creates a **`v{version}` tag** from [`notification_watcher/version.py`](notification_watcher/version.py), and publishes a [GitHub Release](https://github.com/fcpauldiaz/trade-desky-watcher/releases) with download links for:
 
-- `NotificationWatcher-{version}.dmg` (macOS)
-- `NotificationWatcher-{version}-win.zip` (Windows)
+- `TradeDeskyWatcher-{version}.dmg` (macOS)
+- `TradeDeskyWatcher-{version}-win.zip` (Windows)
 
 Bump `__version__` in `notification_watcher/version.py` before merging to `main` to publish a new release tag.
 
@@ -116,11 +118,11 @@ SIGN_IDENTITY="Developer ID Application: Your Name" ./scripts/sign_and_notarize_
 
 1. Confirm `wpndatabase.db` exists under `%LOCALAPPDATA%\Microsoft\Windows\Notifications\`.
 2. Send a test toast; WAL mode may add slight delay.
-3. Check `%APPDATA%\Notification Watcher\notification_watcher.log`.
+3. Check `%APPDATA%\Trade Desky Watcher\notification_watcher.log`.
 
 ### Connection test fails
 
-- Sign in via **Account → Sign in…** with your Trade Platform credentials.
+- Sign in via **Account → Sign in…** with your Trade Desky credentials.
 - Confirm an active Pro subscription on the platform.
 - Use **Account → Test connection** to verify.
 
@@ -129,16 +131,16 @@ SIGN_IDENTITY="Developer ID Application: Your Name" ./scripts/sign_and_notarize_
 ### macOS
 
 1. Quit the app.
-2. Delete `Notification Watcher.app` from Applications.
-3. Remove `~/Library/Application Support/Notification Watcher/`.
-4. Remove `~/Library/LaunchAgents/com.notificationwatcher.app.plist` if present.
+2. Delete `Trade Desky Watcher.app` from Applications.
+3. Remove `~/Library/Application Support/Trade Desky Watcher/`.
+4. Remove `~/Library/LaunchAgents/com.chapilabs.tradedesky.watcher.plist` if present.
 
 ### Windows
 
 1. Quit the tray app.
 2. Delete the install folder.
-3. Remove `%APPDATA%\Notification Watcher\`.
-4. Remove the `NotificationWatcher` entry from Registry → `HKCU\Software\Microsoft\Windows\CurrentVersion\Run` if present.
+3. Remove `%APPDATA%\Trade Desky Watcher\`.
+4. Remove the `TradeDeskyWatcher` entry from Registry → `HKCU\Software\Microsoft\Windows\CurrentVersion\Run` if present.
 
 ## Privacy
 
@@ -146,7 +148,7 @@ See [PRIVACY.md](PRIVACY.md). No telemetry.
 
 ## Auto-update
 
-Bundled macOS and Windows builds check [GitHub Releases](https://github.com/fcpauldiaz/discord-data-scraper/releases) for updates:
+Bundled macOS and Windows builds check [GitHub Releases](https://github.com/fcpauldiaz/trade-desky-watcher/releases) for updates:
 
 - **On startup** (after 60 seconds) and **once per day**
 - **Manual check**: menu bar / tray → **Updates → Check for updates...**
