@@ -3,7 +3,7 @@ Unicode True
   !define VERSION "0.0.0"
 !endif
 Name "Trade Desky Watcher"
-OutFile "dist\TradeDeskyWatcher-${VERSION}-setup.exe"
+OutFile "..\dist\TradeDeskyWatcher-${VERSION}-setup.exe"
 InstallDir "$LOCALAPPDATA\Programs\TradeDeskyWatcher"
 RequestExecutionLevel user
 SilentInstall silent
