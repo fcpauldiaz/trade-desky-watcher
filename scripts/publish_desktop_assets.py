@@ -61,7 +61,7 @@ def main() -> int:
         },
     )
     try:
-        with urlopen(request, timeout=120) as response:
+        with urlopen(request, timeout=300) as response:
             print(response.read().decode("utf-8"))
     except HTTPError as exc:
         raise SystemExit(f"Upload failed: {exc.code} {exc.read().decode('utf-8', errors='replace')}") from exc
