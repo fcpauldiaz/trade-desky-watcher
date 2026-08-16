@@ -114,6 +114,7 @@ class _WinSparkle:
     def __init__(self) -> None:
         self.available = False
         self._dll = None
+        self._initialized = False
         self._callbacks: list[object] = []
         path = _winsparkle_dll_path()
         if path is None:
@@ -170,10 +171,11 @@ class _WinSparkle:
             dll.win_sparkle_set_shutdown_request_callback(shutdown)
 
         dll.win_sparkle_init()
+        self._initialized = True
         return True
 
     def check_now(self) -> bool:
-        if self._dll is None:
+        if self._dll is None or not self._initialized:
             return False
         self._dll.win_sparkle_check_update_with_ui()
         return True
@@ -182,6 +184,7 @@ class _WinSparkle:
         if self._dll is not None:
             self._dll.win_sparkle_cleanup()
             self._dll = None
+        self._initialized = False
         self._callbacks.clear()
 
 
