@@ -40,6 +40,8 @@ warn-*.txt
 .env
 .env.local
 *.pem
+*.p8
+*.p12
 
 # Native updater binaries (fetched in CI)
 vendor/*

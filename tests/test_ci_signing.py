@@ -1,0 +1,25 @@
+from pathlib import Path
+
+CI = Path(__file__).resolve().parent.parent / ".github" / "workflows" / "ci.yml"
+SIGN = Path(__file__).resolve().parent.parent / "scripts" / "sign_and_notarize_mac.sh"
+
+
+def test_ci_macos_job_signs_and_notarizes():
+    ci = CI.read_text(encoding="utf-8")
+    assert "scripts/ci_macos_keychain.sh" in ci
+    assert "scripts/sign_and_notarize_mac.sh" in ci
+    assert "MACOS_CERTIFICATE_P12_BASE64" in ci
+    assert "MACOS_CERTIFICATE_PASSWORD" in ci
+    assert "APPLE_API_KEY" in ci
+    assert "APPLE_API_KEY_ID" in ci
+    assert "APPLE_API_ISSUER" in ci
+    assert "REQUIRE_SIGNING: \"1\"" in ci
+    assert "MACOS_SIGN_IDENTITY" in ci
+
+
+def test_sign_script_rejects_non_developer_id():
+    text = SIGN.read_text(encoding="utf-8")
+    assert "REQUIRE_SIGNING" in text
+    assert "Developer ID Application" in text
+    assert "notarytool submit" in text
+    assert "APPLE_API_KEY_FILE" in text

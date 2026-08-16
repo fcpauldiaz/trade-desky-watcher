@@ -63,9 +63,5 @@ Bundled apps update through Sparkle (macOS) and WinSparkle (Windows). Use **Chec
 
 ## Code signing (maintainers)
 
-CI builds are unsigned by default. For production distribution, configure:
-
-- **macOS:** Apple Developer ID + notarization in CI
-- **Windows:** Authenticode certificate
-
-See `.github/workflows/ci.yml` and signing scripts in the repo.
+- **macOS:** CI Developer ID-signs and notarizes every `main` build. Required GitHub secrets are listed in `README.md`.
+- **Windows:** Authenticode is still local-only (`scripts/sign_windows.ps1`). SmartScreen may warn until a bought code-signing certificate is added to CI.

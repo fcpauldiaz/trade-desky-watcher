@@ -98,16 +98,26 @@ GitHub Actions runs tests on every push/PR. On pushes to `main`, it builds macOS
 
 Bump `__version__` in `notification_watcher/version.py` before merging to `main` to publish a new release tag.
 
-## Signing (local)
+## Signing (CI)
 
-Unsigned CI builds are fine for personal use. For distribution:
+macOS GitHub Actions builds **must** Developer ID-sign and notarize the app. The `build-mac` job fails if these secrets are missing:
+
+| Secret | Purpose |
+|--------|---------|
+| `MACOS_CERTIFICATE_P12_BASE64` | Developer ID Application certificate as a base64-encoded `.p12` |
+| `MACOS_CERTIFICATE_PASSWORD` | Password for that `.p12` |
+| `MACOS_SIGN_IDENTITY` | Identity string, e.g. `Developer ID Application: Name (TEAMID)` |
+| `APPLE_API_KEY` | App Store Connect API `.p8` private key contents |
+| `APPLE_API_KEY_ID` | Key ID |
+| `APPLE_API_ISSUER` | Issuer UUID |
+
+Windows CI builds stay unsigned until an Authenticode certificate is configured (`WINDOWS_CERT_PATH` / `scripts/sign_windows.ps1`).
+
+Local macOS signing (same script CI uses):
 
 ```bash
-# macOS — set SIGN_IDENTITY and NOTARY_PROFILE (notarytool keychain profile)
-SIGN_IDENTITY="Developer ID Application: Your Name" ./scripts/sign_and_notarize_mac.sh
-
-# Windows — set WINDOWS_CERT_PATH and optional WINDOWS_CERT_PASSWORD
-./scripts/sign_windows.ps1
+# macOS — Developer ID in the login keychain + notarytool profile, or APPLE_API_KEY*
+SIGN_IDENTITY="Developer ID Application: Your Name (TEAMID)" ./scripts/sign_and_notarize_mac.sh
 ```
 
 ## Filtering
