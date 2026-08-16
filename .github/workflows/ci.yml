@@ -48,7 +48,7 @@ jobs:
       - run: pip install -r requirements-windows.txt -r requirements-dev.txt
       - run: python scripts/generate_icons.py
       - run: python scripts/fetch_update_frameworks.py --winsparkle
-      - run: pyinstaller notification_watcher.spec
+      - run: python -m PyInstaller notification_watcher.spec
       - name: Install NSIS
         run: choco install nsis -y
       - run: python scripts/build_windows_installer.py

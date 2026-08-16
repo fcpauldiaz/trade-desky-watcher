@@ -1,6 +1,9 @@
 # -*- mode: python ; coding: utf-8 -*-
 
+import sys
 from pathlib import Path
+
+sys.path.insert(0, SPECPATH)
 
 from notification_watcher.product import windows_version_info_text
 from notification_watcher.version import __version__
