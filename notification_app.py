@@ -15,13 +15,13 @@ from notification_watcher.config import get_app_logger, get_log_path, load_confi
 from notification_watcher.login import is_launch_at_login_enabled, open_full_disk_access_settings, set_launch_at_login
 from notification_watcher.macos import format_delivered_date, get_notification_db_path
 from notification_watcher.platform import get_backend
+from notification_watcher.native_update import start_native_or_github
 from notification_watcher.product import APP_NAME
 from notification_watcher.updater import (
     check_for_updates,
     download_and_install,
     is_bundled_app,
     release_page_url,
-    schedule_background_checks,
 )
 from notification_watcher.version import __version__
 from notification_watcher.watcher import watch
@@ -116,8 +116,10 @@ class NotificationWatcherApp(rumps.App):
         rumps.Timer(self._drain_queue, QUEUE_DRAIN_INTERVAL).start()
         rumps.Timer(self._recheck_permissions, FDA_RECHECK_INTERVAL).start()
         self._update_status_from_db()
-        if self._config.check_for_updates:
-            schedule_background_checks(self._notify_update_available, enabled=True)
+        self._native_updater = start_native_or_github(
+            automatic=self._config.check_for_updates,
+            on_github_update=self._notify_update_available,
+        )
         get_app_logger().info("App started (db=%s)", self._db_path)
 
     def _save_config(self) -> None:
@@ -363,6 +365,8 @@ class NotificationWatcherApp(rumps.App):
         )
 
     def _check_for_updates(self, _: rumps.MenuItem) -> None:
+        if self._native_updater.check_now():
+            return
         result = check_for_updates(force=True)
         if result.error:
             rumps.alert(f"Could not check for updates:\n\n{result.error}", "Updates")
@@ -409,6 +413,7 @@ class NotificationWatcherApp(rumps.App):
     @rumps.clicked("Quit")
     def quit_app(self, _: rumps.MenuItem) -> None:
         self._stop_thread.set()
+        self._native_updater.cleanup()
         rumps.quit_application()
 
 

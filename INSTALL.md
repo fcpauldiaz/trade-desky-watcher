@@ -7,7 +7,8 @@ End-user setup for macOS and Windows.
 Get the latest release from [GitHub Releases](https://github.com/fcpauldiaz/trade-desky-watcher/releases):
 
 - **macOS:** `TradeDeskyWatcher-*.dmg`
-- **Windows:** `TradeDeskyWatcher-*-win.zip`
+- **Windows:** `TradeDeskyWatcher-*-setup.exe` (recommended)
+- **Windows (portable):** `TradeDeskyWatcher-*-win.zip`
 
 ## macOS
 
@@ -22,9 +23,10 @@ If notifications are not detected, remove and re-add Full Disk Access, then rest
 
 ## Windows
 
-1. Extract the zip to a folder (e.g. `C:\TradeDeskyWatcher`).
-2. Run `TradeDeskyWatcher.exe`.
-3. If SmartScreen warns about an unsigned app, choose **More info → Run anyway** (releases are unsigned until code signing is configured in CI).
+1. Run `TradeDeskyWatcher-*-setup.exe` (installs to `%LOCALAPPDATA%\Programs\TradeDeskyWatcher` and launches the app).
+2. If SmartScreen warns about an unsigned app, choose **More info → Run anyway** (releases are unsigned until code signing is configured in CI).
+
+Portable alternative: extract `TradeDeskyWatcher-*-win.zip` and run `TradeDeskyWatcher.exe`. Checking for updates still downloads the setup installer, which installs to `%LOCALAPPDATA%\Programs\TradeDeskyWatcher`.
 
 ## Connect to Trade Desky
 
@@ -57,7 +59,7 @@ Stored in the app support directory:
 
 ## Updates
 
-Bundled apps check GitHub Releases automatically. Use **Check for updates…** in the menu to install manually.
+Bundled apps update through Sparkle (macOS) and WinSparkle (Windows). Use **Check for updates…** in the menu to check immediately.
 
 ## Code signing (maintainers)
 

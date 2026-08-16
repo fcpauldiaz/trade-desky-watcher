@@ -28,6 +28,7 @@ jobs:
           python-version: "3.12"
       - run: pip install -r requirements-app.txt
       - run: python3 scripts/generate_icons.py
+      - run: python3 scripts/fetch_update_frameworks.py --sparkle
       - run: python3 setup.py py2app
       - run: chmod +x create_dmg.sh && ./create_dmg.sh
       - uses: actions/upload-artifact@v7
@@ -46,7 +47,11 @@ jobs:
           python-version: "3.12"
       - run: pip install -r requirements-windows.txt -r requirements-dev.txt
       - run: python scripts/generate_icons.py
+      - run: python scripts/fetch_update_frameworks.py --winsparkle
       - run: pyinstaller notification_watcher.spec
+      - name: Install NSIS
+        run: choco install nsis -y
+      - run: python scripts/build_windows_installer.py
       - name: Zip Windows build
         shell: pwsh
         run: |
@@ -55,7 +60,9 @@ jobs:
       - uses: actions/upload-artifact@v7
         with:
           name: trade-desky-watcher-windows
-          path: dist/*.zip
+          path: |
+            dist/*.zip
+            dist/*-setup.exe
 
   release:
     if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master' || startsWith(github.ref, 'refs/tags/v'))
@@ -70,6 +77,7 @@ jobs:
       - uses: actions/setup-python@v6
         with:
           python-version: "3.12"
+      - run: pip install -r requirements-dev.txt
       - uses: actions/download-artifact@v8
         with:
           path: artifacts
@@ -82,18 +90,22 @@ jobs:
       - name: Collect release files
         run: |
           mkdir -p release
-          find artifacts -type f \( -name '*.dmg' -o -name '*.zip' \) -exec cp {} release/ \;
+          find artifacts -type f \( -name '*.dmg' -o -name '*.zip' -o -name '*setup.exe' \) -exec cp {} release/ \;
           ls -la release/
       - name: Generate Sparkle appcast
+        env:
+          SPARKLE_ED_PRIVATE_KEY: ${{ secrets.SPARKLE_ED_PRIVATE_KEY }}
         run: |
-          VERSION=$(python -c "from notification_watcher.version import __version__; print(__version__)")
+          VERSION="${{ steps.version.outputs.version }}"
           DMG=$(ls release/*.dmg | head -1)
-          SIZE=$(wc -c < "$DMG" | tr -d ' ')
-          DMG_NAME=$(basename "$DMG")
+          SETUP=$(ls release/*-setup.exe | head -1)
           python scripts/generate_appcast.py \
             --version "$VERSION" \
-            --dmg-url "https://github.com/${{ github.repository }}/releases/download/v${VERSION}/${DMG_NAME}" \
-            --dmg-size "$SIZE" \
+            --dmg "$DMG" \
+            --dmg-url "https://github.com/${{ github.repository }}/releases/download/v${VERSION}/$(basename "$DMG")" \
+            --win-setup "$SETUP" \
+            --win-setup-url "https://github.com/${{ github.repository }}/releases/download/v${VERSION}/$(basename "$SETUP")" \
+            --sign \
             -o release/appcast.xml
       - name: Create or move version tag
         if: startsWith(github.ref, 'refs/heads/')
@@ -115,9 +127,10 @@ jobs:
             | Platform | File |
             |----------|------|
             | macOS | `TradeDeskyWatcher-*.dmg` — drag the app to Applications |
-            | Windows | `TradeDeskyWatcher-*-win.zip` — extract and run `TradeDeskyWatcher.exe` |
+            | Windows | `TradeDeskyWatcher-*-setup.exe` — per-user installer (used by auto-update) |
+            | Windows (portable) | `TradeDeskyWatcher-*-win.zip` — extract and run `TradeDeskyWatcher.exe` |
 
-            Assets are attached below.
+            Bundled builds update through Sparkle (macOS) and WinSparkle (Windows) using `appcast.xml`.
           files: release/*
           fail_on_unmatched_files: true
           make_latest: true

@@ -5,13 +5,22 @@ from pathlib import Path
 
 block_cipher = None
 root = Path(SPECPATH)
+winsparkle = root / "vendor" / "WinSparkle.dll"
+binaries = [(str(winsparkle), ".")] if winsparkle.is_file() else []
 
 a = Analysis(
     ["windows_app.py"],
     pathex=[str(root)],
-    binaries=[],
+    binaries=binaries,
     datas=[(str(root / "assets" / "icon.ico"), "assets")],
-    hiddenimports=["pystray", "PIL", "PIL.Image", "PIL.ImageDraw", "notification_watcher.updater"],
+    hiddenimports=[
+        "pystray",
+        "PIL",
+        "PIL.Image",
+        "PIL.ImageDraw",
+        "notification_watcher.updater",
+        "notification_watcher.native_update",
+    ],
     hookspath=[],
     hooksconfig={},
     runtime_hooks=[],

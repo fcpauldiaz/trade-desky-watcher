@@ -41,6 +41,10 @@ warn-*.txt
 .env.local
 *.pem
 
+# Native updater binaries (fetched in CI)
+vendor/*
+!vendor/.gitkeep
+
 # Logs and local data
 *.log
 *.sqlite
