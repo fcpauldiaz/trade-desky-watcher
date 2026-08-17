@@ -305,6 +305,7 @@ class WindowsNotificationApp:
         self._config.ingest_url = result["ingest_url"]
         self._config.account_email = result["account_email"]
         save_config(self._config)
+        ingest_sender.flush_pending(self._config)
         messagebox.showinfo("Signed in", result["account_email"])
 
     def _sign_out(self, _icon, _item) -> None:
