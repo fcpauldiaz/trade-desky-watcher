@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.4.2
+
+- Fix the macOS menu bar app crashing on launch with py2app's generic launch error
+
 ## 1.4.1
 
 - Use the Trade Desky app icon and Chapi Labs copyright in About / Get Info and Windows file properties

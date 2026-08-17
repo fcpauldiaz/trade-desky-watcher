@@ -57,8 +57,9 @@ class NotificationWatcherApp(rumps.App):
         self._recent: list[tuple[str, str, str, str, float | None]] = []
         self._status = "Starting..."
 
+        status_item = rumps.MenuItem("Status: Starting...", callback=None)
         self.menu = [
-            rumps.MenuItem("Status: Starting...", callback=None),
+            status_item,
             None,
             ["Recent", [rumps.MenuItem("(none)", callback=self._show_recent_detail)]],
             None,
@@ -97,7 +98,7 @@ class NotificationWatcherApp(rumps.App):
             None,
             "Quit",
         ]
-        self._status_item = self.menu[0]
+        self._status_item = status_item
         self._poll_menu = self.menu["Poll interval"]
         self._recent_menu = self.menu["Recent"]
         self._launch_item = self.menu["Launch at login"]
