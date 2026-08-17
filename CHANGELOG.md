@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 1.4.7
 
 - Read Notification Center's SQLite WAL so new Discord banners are visible before a checkpoint
 - Queue Discord notifications while signed out and send them after sign-in
