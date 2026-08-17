@@ -69,15 +69,12 @@ def load_config() -> AppConfig:
         return default_config()
     poll = data.get("poll_seconds")
     poll_seconds = float(poll) if isinstance(poll, (int, float)) and poll > 0 else 0.5
-    app_filter = data.get("app_filter")
     platform_url = data.get("platform_url")
     ingest_url = data.get("ingest_url")
     auth_token = data.get("auth_token")
     account_email = data.get("account_email")
     return AppConfig(
         poll_seconds=poll_seconds,
-        discord_only=bool(data.get("discord_only", False)),
-        app_filter=app_filter if isinstance(app_filter, str) and app_filter else None,
         launch_at_login=bool(data.get("launch_at_login", False)),
         check_for_updates=bool(data.get("check_for_updates", True)),
         platform_url=platform_url if isinstance(platform_url, str) and platform_url else DEFAULT_PLATFORM_URL,
@@ -92,8 +89,6 @@ def save_config(config: AppConfig) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     data = {
         "poll_seconds": config.poll_seconds,
-        "discord_only": config.discord_only,
-        "app_filter": config.app_filter,
         "launch_at_login": config.launch_at_login,
         "check_for_updates": config.check_for_updates,
         "platform_url": config.platform_url,

@@ -21,8 +21,6 @@ def test_config_round_trip(tmp_path: Path, monkeypatch):
     )
     cfg = AppConfig(
         poll_seconds=0.1,
-        discord_only=True,
-        app_filter="%slack%",
         launch_at_login=True,
         auth_token="secret-token",
         account_email="user@example.com",
@@ -32,8 +30,6 @@ def test_config_round_trip(tmp_path: Path, monkeypatch):
     save_config(cfg)
     loaded = load_config()
     assert loaded.poll_seconds == 0.1
-    assert loaded.discord_only is True
-    assert loaded.app_filter == "%slack%"
     assert loaded.launch_at_login is True
     assert loaded.auth_token == "secret-token"
     assert loaded.account_email == "user@example.com"
@@ -41,11 +37,11 @@ def test_config_round_trip(tmp_path: Path, monkeypatch):
     assert loaded.platform_url == "https://app.example.com"
 
 
-def test_effective_app_filter():
-    cfg = AppConfig(discord_only=True, app_filter="%slack%")
-    assert cfg.effective_app_filter() == "%discord%"
-    cfg.discord_only = False
-    assert cfg.effective_app_filter() == "%slack%"
+def test_effective_app_filter_is_always_discord():
+    from notification_watcher.types import DISCORD_APP_FILTER
+
+    assert AppConfig().effective_app_filter() == DISCORD_APP_FILTER
+    assert DISCORD_APP_FILTER == "%discord%"
 
 
 def test_load_config_invalid_json(tmp_path: Path, monkeypatch):

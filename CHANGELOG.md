@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.4.4
+
+- Always capture Discord notifications only; remove Discord-only and app-filter menu options
+
 ## 1.4.3
 
 - Prompt for Full Disk Access and open System Settings when Notification Center cannot be read

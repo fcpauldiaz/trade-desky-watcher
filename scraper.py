@@ -75,11 +75,6 @@ def main() -> None:
         help="Print current notifications once and exit instead of watching.",
     )
     parser.add_argument(
-        "--discord-only",
-        action="store_true",
-        help="Only show notifications from apps whose identifier contains 'discord'.",
-    )
-    parser.add_argument(
         "--poll",
         type=float,
         default=None,
@@ -98,13 +93,6 @@ def main() -> None:
         action="store_true",
         help="Do not forward notifications to the ingest endpoint.",
     )
-    parser.add_argument(
-        "--filter",
-        type=str,
-        default=None,
-        metavar="PATTERN",
-        help="SQL LIKE filter for app identifier (e.g. %%discord%%).",
-    )
     args = parser.parse_args()
 
     db_path = args.db or backend.get_notification_db_path()
@@ -112,12 +100,7 @@ def main() -> None:
         print("Could not resolve notification database path.")
         raise SystemExit(1)
 
-    if args.discord_only:
-        app_filter = "%discord%"
-    elif args.filter:
-        app_filter = args.filter
-    else:
-        app_filter = config.effective_app_filter()
+    app_filter = config.effective_app_filter()
 
     poll_seconds = args.poll if args.poll is not None else config.poll_seconds
 

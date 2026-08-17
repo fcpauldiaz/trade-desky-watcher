@@ -47,8 +47,6 @@ Stored in the app support directory:
 ```json
 {
   "poll_seconds": 0.5,
-  "discord_only": false,
-  "app_filter": "%discord%",
   "platform_url": "https://app.yourdomain.com",
   "ingest_url": "https://api.yourdomain.com/v1/ingest",
   "auth_token": null,

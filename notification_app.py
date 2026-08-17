@@ -22,6 +22,7 @@ from notification_watcher.macos import (
 from notification_watcher.platform import get_backend
 from notification_watcher.native_update import start_native_or_github
 from notification_watcher.product import APP_NAME, DOWNLOAD_PAGE_URL, apply_macos_app_identity
+from notification_watcher.types import DISCORD_APP_FILTER
 from notification_watcher.version import __version__
 from notification_watcher.watcher import watch
 
@@ -65,8 +66,6 @@ class NotificationWatcherApp(rumps.App):
         self._config = load_config()
         self._db_path: Path | None = get_notification_db_path()
         self._poll_seconds = self._config.poll_seconds
-        self._app_filter = self._config.effective_app_filter()
-        self._discord_only = self._config.discord_only
         self._notif_queue: queue.Queue = queue.Queue()
         self._stop_thread = threading.Event()
         self._watcher_thread: threading.Thread | None = None
@@ -80,8 +79,6 @@ class NotificationWatcherApp(rumps.App):
             None,
             ["Recent", [rumps.MenuItem("(none)", callback=self._show_recent_detail)]],
             None,
-            rumps.MenuItem("Discord only", callback=self._toggle_discord),
-            rumps.MenuItem("Filter by app...", callback=self._set_app_filter),
             [
                 "Poll interval",
                 [
@@ -120,11 +117,9 @@ class NotificationWatcherApp(rumps.App):
         self._poll_menu = self.menu["Poll interval"]
         self._recent_menu = self.menu["Recent"]
         self._launch_item = self.menu["Launch at login"]
-        self._discord_item = self.menu["Discord only"]
         self._refresh_account_status()
 
         self._apply_poll_menu_state()
-        self._discord_item.state = self._discord_only
         self._launch_item.state = is_launch_at_login_enabled()
         if self._config.launch_at_login != self._launch_item.state:
             self._config.launch_at_login = self._launch_item.state
@@ -140,8 +135,6 @@ class NotificationWatcherApp(rumps.App):
 
     def _save_config(self) -> None:
         self._config.poll_seconds = self._poll_seconds
-        self._config.discord_only = self._discord_only
-        self._app_filter = self._config.effective_app_filter()
         save_config(self._config)
 
     def _set_status(self, status: str) -> None:
@@ -190,33 +183,6 @@ class NotificationWatcherApp(rumps.App):
             if isinstance(item, rumps.MenuItem):
                 item.state = item.title == label
 
-    def _toggle_discord(self, sender: rumps.MenuItem) -> None:
-        self._discord_only = not sender.state
-        sender.state = self._discord_only
-        self._config.discord_only = self._discord_only
-        self._app_filter = self._config.effective_app_filter()
-        self._save_config()
-
-    def _set_app_filter(self, _: rumps.MenuItem) -> None:
-        window = rumps.Window(
-            message="App identifier filter (SQL LIKE, e.g. %discord%):",
-            title="Filter by app",
-            default_text=self._config.app_filter or "",
-            ok="Apply",
-            cancel="Cancel",
-        )
-        response = window.run()
-        if response.clicked != 1:
-            return
-        value = (response.text or "").strip()
-        self._config.app_filter = value or None
-        if value:
-            self._discord_only = False
-            self._config.discord_only = False
-            self._discord_item.state = False
-        self._app_filter = self._config.effective_app_filter()
-        self._save_config()
-
     def _set_poll(self, sender: rumps.MenuItem) -> None:
         for item in self._poll_menu.values():
             if isinstance(item, rumps.MenuItem):
@@ -257,7 +223,7 @@ class NotificationWatcherApp(rumps.App):
             backend,
             self._db_path,
             lambda: self._poll_seconds,
-            lambda: self._app_filter,
+            DISCORD_APP_FILTER,
             self._on_notification,
             stop_flag=stop_flag,
             on_error=self._on_error,

@@ -8,12 +8,12 @@ Notification = tuple[str, str, str, str, int | None, DeliveredDate]
 OnNotification = Callable[[str, str, str, str, DeliveredDate], None]
 OnError = Callable[[Exception], None]
 
+DISCORD_APP_FILTER = "%discord%"
+
 
 @dataclass
 class AppConfig:
     poll_seconds: float = 0.5
-    discord_only: bool = False
-    app_filter: str | None = None
     launch_at_login: bool = False
     check_for_updates: bool = True
     platform_url: str = DEFAULT_PLATFORM_URL
@@ -21,10 +21,8 @@ class AppConfig:
     auth_token: str | None = None
     account_email: str | None = None
 
-    def effective_app_filter(self) -> str | None:
-        if self.discord_only:
-            return "%discord%"
-        return self.app_filter
+    def effective_app_filter(self) -> str:
+        return DISCORD_APP_FILTER
 
     def is_signed_in(self) -> bool:
         return bool(self.auth_token)

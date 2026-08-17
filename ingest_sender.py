@@ -126,9 +126,7 @@ def _post_one(url: str, payload_bytes: bytes, payload_json: str, auth_token: str
     return False
 
 
-def _should_forward(app_id: str, config: AppConfig) -> bool:
-    if not config.discord_only:
-        return True
+def _should_forward(app_id: str) -> bool:
     return "discord" in app_id.lower()
 
 
@@ -141,7 +139,7 @@ def send_notification(
     config: AppConfig | None = None,
 ) -> None:
     cfg = config or load_config()
-    if not _should_forward(app_id, cfg):
+    if not _should_forward(app_id):
         return
     if not cfg.auth_token:
         get_app_logger().info("Notification skipped: not signed in")

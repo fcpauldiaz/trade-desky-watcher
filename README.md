@@ -122,8 +122,7 @@ SIGN_IDENTITY="Developer ID Application: Your Name (TEAMID)" ./scripts/sign_and_
 
 ## Filtering
 
-- Set `"discord_only": true` in config to forward only Discord app notifications.
-- Set `"app_filter": "%slack%"` (SQL LIKE) to limit by app bundle id.
+The watcher only captures **Discord** notifications.
 
 ## Troubleshooting
 

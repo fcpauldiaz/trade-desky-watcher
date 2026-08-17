@@ -20,7 +20,7 @@ from notification_watcher.auth import AuthError, sign_in
 from notification_watcher.config import get_app_logger, get_log_path, load_config, save_config
 from notification_watcher.login import is_launch_at_login_enabled, set_launch_at_login
 from notification_watcher.platform import get_backend
-from notification_watcher.types import AppConfig
+from notification_watcher.types import DISCORD_APP_FILTER
 from notification_watcher.native_update import start_native_or_github
 from notification_watcher.product import APP_NAME, APP_NAME_COMPACT, DOWNLOAD_PAGE_URL
 from notification_watcher.version import __version__
@@ -55,8 +55,6 @@ class WindowsNotificationApp:
         self._config = load_config()
         self._db_path = get_notification_db_path()
         self._poll_seconds = self._config.poll_seconds
-        self._app_filter = self._config.effective_app_filter()
-        self._discord_only = self._config.discord_only
         self._notif_queue: queue.Queue = queue.Queue()
         self._stop_thread = threading.Event()
         self._watcher_thread: threading.Thread | None = None
@@ -85,8 +83,6 @@ class WindowsNotificationApp:
 
     def _save_config(self) -> None:
         self._config.poll_seconds = self._poll_seconds
-        self._config.discord_only = self._discord_only
-        self._app_filter = self._config.effective_app_filter()
         save_config(self._config)
 
     def _set_status(self, status: str) -> None:
@@ -146,7 +142,7 @@ class WindowsNotificationApp:
             backend,
             self._db_path,
             lambda: self._poll_seconds,
-            lambda: self._app_filter,
+            DISCORD_APP_FILTER,
             self._on_notification,
             stop_flag=stop_flag,
             on_error=self._on_error,
@@ -197,14 +193,6 @@ class WindowsNotificationApp:
             ]
         items.append(pystray.MenuItem("Recent", pystray.Menu(*recent_items)))
         items.append(pystray.Menu.SEPARATOR)
-        items.append(
-            pystray.MenuItem(
-                "Discord only",
-                self._toggle_discord,
-                checked=lambda _: self._discord_only,
-            )
-        )
-        items.append(pystray.MenuItem("Filter by app...", self._set_app_filter))
         poll_submenu = pystray.Menu(
             *[
                 pystray.MenuItem(
@@ -284,30 +272,6 @@ class WindowsNotificationApp:
             f"Subtitle: {subtitle}\n"
             f"Body: {body}",
         )
-
-    def _toggle_discord(self, _icon, _item) -> None:
-        self._discord_only = not self._discord_only
-        self._config.discord_only = self._discord_only
-        self._app_filter = self._config.effective_app_filter()
-        self._save_config()
-        self._update_watcher()
-
-    def _set_app_filter(self, _icon, _item) -> None:
-        value = simpledialog.askstring(
-            "Filter by app",
-            "App identifier filter (SQL LIKE, e.g. %discord%):",
-            initialvalue=self._config.app_filter or "",
-            parent=self._tk_root,
-        )
-        if value is None:
-            return
-        self._config.app_filter = value.strip() or None
-        if self._config.app_filter:
-            self._discord_only = False
-            self._config.discord_only = False
-        self._app_filter = self._config.effective_app_filter()
-        self._save_config()
-        self._update_watcher()
 
     def _toggle_launch_at_login(self, _icon, _item) -> None:
         enabled = not is_launch_at_login_enabled()
