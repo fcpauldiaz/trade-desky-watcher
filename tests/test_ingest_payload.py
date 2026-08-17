@@ -39,10 +39,10 @@ def test_unsigned_discord_notifications_flush_after_sign_in(monkeypatch) -> None
 
     unsigned = AppConfig(auth_token=None)
     ingest_sender.send_notification(
-        "com.hnc.Discord", "Alerts", "", "BTO SPY", 1.0, unsigned
+        "com.hnc.Discord", "Alerts", "", "BTO SPY", None, unsigned
     )
     ingest_sender.send_notification(
-        "com.apple.mail", "Hi", "", "not a trade", 2.0, unsigned
+        "com.apple.mail", "Hi", "", "not a trade", None, unsigned
     )
     assert ingest_sender.pending_count() == 1
     assert sent == []

@@ -156,7 +156,7 @@ def clear_pending() -> None:
         _pending.clear()
 
 
-def _queue_until_signed_in_unlocked(
+def _enqueue_locked(
     app_id: str,
     title: str,
     subtitle: str,
@@ -166,21 +166,10 @@ def _queue_until_signed_in_unlocked(
     key = _notification_key(app_id, title, subtitle, body, delivered_date)
     if key in _pending:
         _pending.move_to_end(key)
-    else:
-        _pending[key] = None
-        while len(_pending) > PENDING_MAX:
-            _pending.popitem(last=False)
-
-
-def _queue_until_signed_in(
-    app_id: str,
-    title: str,
-    subtitle: str,
-    body: str,
-    delivered_date: float | None,
-) -> None:
-    with _pending_lock:
-        _queue_until_signed_in_unlocked(app_id, title, subtitle, body, delivered_date)
+        return
+    _pending[key] = None
+    while len(_pending) > PENDING_MAX:
+        _pending.popitem(last=False)
 
 
 def _start_send(
@@ -218,9 +207,13 @@ def send_notification(
         return
     with _pending_lock:
         if not cfg.auth_token:
-            _queue_until_signed_in_unlocked(app_id, title, subtitle, body, delivered_date)
-            get_app_logger().info("Notification queued: not signed in")
-            return
+            _enqueue_locked(app_id, title, subtitle, body, delivered_date)
+            queued = True
+        else:
+            queued = False
+    if queued:
+        get_app_logger().info("Notification queued: not signed in")
+        return
     get_app_logger().info(
         "Notification: %s | %s",
         title or "(no title)",
