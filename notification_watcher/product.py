@@ -15,6 +15,11 @@ DESKTOP_ASSETS_URL = f"{DOWNLOAD_BASE_URL}/desktop"
 APPCAST_URL = f"{DESKTOP_ASSETS_URL}/appcast.xml"
 GITHUB_REPO = "fcpauldiaz/trade-desky-watcher"
 
+PRODUCTION_PLATFORM_URL = "https://tradedesky.chapilabs.com"
+PRODUCTION_INGEST_URL = "https://trade-receiver.chapilabs.com/v1/ingest"
+DEFAULT_PLATFORM_URL = os.environ.get("TRADE_PLATFORM_URL", PRODUCTION_PLATFORM_URL).rstrip("/")
+DEFAULT_INGEST_URL = os.environ.get("TRADE_INGEST_URL", PRODUCTION_INGEST_URL).rstrip("/")
+
 BUNDLE_ID = "com.chapilabs.tradedesky.watcher"
 LEGACY_BUNDLE_ID = "com.notificationwatcher.app"
 
@@ -24,8 +29,19 @@ SPARKLE_ED_PUBLIC_KEY = "p0zov5LiRiWRrOgkdUkVuPhw6w+RwC415epJzD3hzRc="
 SPARKLE_VERSION = "2.9.5"
 WINSPARKLE_VERSION = "0.9.4"
 
-DEFAULT_PLATFORM_URL = os.environ.get("TRADE_PLATFORM_URL", "http://localhost:3000")
-DEFAULT_INGEST_URL = os.environ.get("TRADE_INGEST_URL", "http://localhost:8000/v1/ingest")
+
+def is_loopback_url(url: str) -> bool:
+    lowered = url.lower()
+    return "localhost" in lowered or "127.0.0.1" in lowered
+
+
+def resolved_service_url(saved: object, default: str) -> str:
+    if isinstance(saved, str) and saved.strip():
+        candidate = saved.strip().rstrip("/")
+        if is_loopback_url(candidate) and not is_loopback_url(default):
+            return default
+        return candidate
+    return default.rstrip("/")
 
 
 def macos_bundle_plist(version: str) -> dict[str, object]:

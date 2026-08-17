@@ -12,6 +12,8 @@ def test_default_config():
     assert cfg.auth_token is None
     assert cfg.poll_seconds == 0.5
     assert cfg.is_signed_in() is False
+    assert cfg.platform_url == "https://tradedesky.chapilabs.com"
+    assert cfg.ingest_url == "https://trade-receiver.chapilabs.com/v1/ingest"
 
 
 def test_config_round_trip(tmp_path: Path, monkeypatch):
@@ -42,6 +44,18 @@ def test_effective_app_filter_is_always_discord():
 
     assert AppConfig().effective_app_filter() == DISCORD_APP_FILTER
     assert DISCORD_APP_FILTER == "%discord%"
+
+
+def test_load_config_replaces_loopback_platform_url(tmp_path: Path, monkeypatch):
+    path = tmp_path / "config.json"
+    path.write_text(
+        json.dumps({"platform_url": "http://localhost:3000", "ingest_url": "http://localhost:8000/v1/ingest"}),
+        encoding="utf-8",
+    )
+    monkeypatch.setattr("notification_watcher.config.get_config_path", lambda: path)
+    loaded = load_config()
+    assert loaded.platform_url == "https://tradedesky.chapilabs.com"
+    assert loaded.ingest_url == "https://trade-receiver.chapilabs.com/v1/ingest"
 
 
 def test_load_config_invalid_json(tmp_path: Path, monkeypatch):

@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.4.5
+
+- Sign in against tradedesky.chapilabs.com by default; replace saved localhost platform/ingest URLs
+- Override with TRADE_PLATFORM_URL and TRADE_INGEST_URL for local development
+
 ## 1.4.4
 
 - Always capture Discord notifications only; remove Discord-only and app-filter menu options

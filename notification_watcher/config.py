@@ -5,7 +5,13 @@ import shutil
 import sys
 from pathlib import Path
 
-from notification_watcher.product import APP_NAME, DEFAULT_INGEST_URL, DEFAULT_PLATFORM_URL, LEGACY_APP_NAME
+from notification_watcher.product import (
+    APP_NAME,
+    DEFAULT_INGEST_URL,
+    DEFAULT_PLATFORM_URL,
+    LEGACY_APP_NAME,
+    resolved_service_url,
+)
 from notification_watcher.types import AppConfig
 
 CONFIG_FILENAME = "config.json"
@@ -77,8 +83,8 @@ def load_config() -> AppConfig:
         poll_seconds=poll_seconds,
         launch_at_login=bool(data.get("launch_at_login", False)),
         check_for_updates=bool(data.get("check_for_updates", True)),
-        platform_url=platform_url if isinstance(platform_url, str) and platform_url else DEFAULT_PLATFORM_URL,
-        ingest_url=ingest_url if isinstance(ingest_url, str) and ingest_url else DEFAULT_INGEST_URL,
+        platform_url=resolved_service_url(platform_url, DEFAULT_PLATFORM_URL),
+        ingest_url=resolved_service_url(ingest_url, DEFAULT_INGEST_URL),
         auth_token=auth_token if isinstance(auth_token, str) and auth_token else None,
         account_email=account_email if isinstance(account_email, str) and account_email else None,
     )
