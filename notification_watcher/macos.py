@@ -38,19 +38,38 @@ def _notification_db_candidates() -> Iterator[Path]:
     )
 
 
-def sqlite_readonly_uri(db_path: Path) -> str:
-    return f"{db_path.resolve().as_uri()}?mode=ro&immutable=1"
+def sqlite_readonly_uri(db_path: Path, *, immutable: bool = False) -> str:
+    uri = f"{db_path.resolve().as_uri()}?mode=ro"
+    if immutable:
+        uri += "&immutable=1"
+    return uri
+
+
+def connect_notification_db(db_path: Path) -> sqlite3.Connection:
+    last_error: sqlite3.Error | None = None
+    for immutable in (False, True):
+        conn = sqlite3.connect(
+            sqlite_readonly_uri(db_path, immutable=immutable),
+            uri=True,
+            timeout=1.0,
+        )
+        try:
+            conn.execute("SELECT 1")
+            return conn
+        except sqlite3.Error as exc:
+            last_error = exc
+            conn.close()
+    if last_error is not None:
+        raise last_error
+    raise sqlite3.OperationalError("unable to open notification database")
 
 
 def can_read_notification_db(db_path: Path | None) -> bool:
     if db_path is None or not db_path.exists():
         return False
     try:
-        conn = sqlite3.connect(sqlite_readonly_uri(db_path), uri=True)
-        try:
-            conn.execute("SELECT 1")
-        finally:
-            conn.close()
+        conn = connect_notification_db(db_path)
+        conn.close()
     except sqlite3.Error:
         return False
     return True
@@ -124,7 +143,7 @@ def iter_notifications(
             "Grant Full Disk Access to Terminal (or this app) in System Settings > Privacy & Security, "
             "or pass the DB path with --db if you know it."
         )
-    conn = sqlite3.connect(sqlite_readonly_uri(db_path), uri=True)
+    conn = connect_notification_db(db_path)
     conn.row_factory = sqlite3.Row
     try:
         sql = """
