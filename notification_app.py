@@ -276,6 +276,7 @@ class NotificationWatcherApp(rumps.App):
         self._config.account_email = result["account_email"]
         save_config(self._config)
         self._refresh_account_status()
+        ingest_sender.flush_pending(self._config)
         rumps.notification(APP_NAME, "Signed in", result["account_email"])
 
     def _sign_out(self, _: rumps.MenuItem) -> None:

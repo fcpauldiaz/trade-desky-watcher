@@ -7,6 +7,7 @@ import threading
 import time
 import urllib.error
 import urllib.request
+from collections import OrderedDict
 
 from notification_watcher import format_delivered_date, to_unix_timestamp
 from notification_watcher.config import get_app_logger, load_config
@@ -15,9 +16,12 @@ from notification_watcher.types import AppConfig
 
 REQUEST_TIMEOUT = 10
 RETRY_DELAYS = (1.0, 3.0, 9.0)
+PENDING_MAX = 200
 
 _last_ingest_status: str = "Not connected"
 _last_ingest_time: float | None = None
+_pending_lock = threading.Lock()
+_pending: OrderedDict[tuple[str, str, str, str, float | None], None] = OrderedDict()
 
 
 def get_last_ingest_status() -> tuple[str, float | None]:
@@ -132,6 +136,65 @@ def _should_forward(app_id: str) -> bool:
     return "discord" in app_id.lower()
 
 
+def _notification_key(
+    app_id: str,
+    title: str,
+    subtitle: str,
+    body: str,
+    delivered_date: float | None,
+) -> tuple[str, str, str, str, float | None]:
+    return (app_id, title, subtitle, body, delivered_date)
+
+
+def pending_count() -> int:
+    with _pending_lock:
+        return len(_pending)
+
+
+def clear_pending() -> None:
+    with _pending_lock:
+        _pending.clear()
+
+
+def _queue_until_signed_in(
+    app_id: str,
+    title: str,
+    subtitle: str,
+    body: str,
+    delivered_date: float | None,
+) -> None:
+    key = _notification_key(app_id, title, subtitle, body, delivered_date)
+    with _pending_lock:
+        if key in _pending:
+            _pending.move_to_end(key)
+        else:
+            _pending[key] = None
+            while len(_pending) > PENDING_MAX:
+                _pending.popitem(last=False)
+
+
+def _start_send(
+    app_id: str,
+    title: str,
+    subtitle: str,
+    body: str,
+    delivered_date: float | None,
+    config: AppConfig,
+) -> None:
+    token = config.auth_token
+    if not token:
+        return
+    ingest_url = config.ingest_url.strip()
+
+    def run_send() -> None:
+        payload_bytes, payload_json = build_payload(
+            app_id, title, subtitle, body, delivered_date
+        )
+        _post_one(ingest_url, payload_bytes, payload_json, token)
+
+    threading.Thread(target=run_send, daemon=True).start()
+
+
 def send_notification(
     app_id: str,
     title: str,
@@ -144,21 +207,30 @@ def send_notification(
     if not _should_forward(app_id):
         return
     if not cfg.auth_token:
-        get_app_logger().info("Notification skipped: not signed in")
+        _queue_until_signed_in(app_id, title, subtitle, body, delivered_date)
+        get_app_logger().info("Notification queued: not signed in")
         return
     get_app_logger().info(
         "Notification: %s | %s",
         title or "(no title)",
         body[:80] + "..." if len(body) > 80 else body,
     )
+    _start_send(app_id, title, subtitle, body, delivered_date, cfg)
 
-    def run_send() -> None:
-        payload_bytes, payload_json = build_payload(
-            app_id, title, subtitle, body, delivered_date
-        )
-        _post_one(cfg.ingest_url.strip(), payload_bytes, payload_json, cfg.auth_token)
 
-    threading.Thread(target=run_send, daemon=True).start()
+def flush_pending(config: AppConfig | None = None) -> int:
+    cfg = config or load_config()
+    if not cfg.auth_token:
+        return 0
+    with _pending_lock:
+        items = list(_pending.keys())
+        _pending.clear()
+    if not items:
+        return 0
+    get_app_logger().info("Flushing %s queued notification(s) after sign-in", len(items))
+    for app_id, title, subtitle, body, delivered_date in items:
+        send_notification(app_id, title, subtitle, body, delivered_date, cfg)
+    return len(items)
 
 
 def send_test_connection() -> tuple[bool, str]:
