@@ -1,5 +1,9 @@
 # Changelog
 
+## Unreleased
+
+- Read Notification Center's SQLite WAL so new Discord banners are visible before a checkpoint
+
 ## 1.4.6
 
 - Send a TradeDeskyWatcher User-Agent so Cloudflare no longer blocks sign-in and ingest (error 1010)
