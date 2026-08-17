@@ -24,7 +24,7 @@ If notifications are not detected, remove and re-add Full Disk Access, then rest
 ## Windows
 
 1. Run `TradeDeskyWatcher-*-setup.exe` (installs to `%LOCALAPPDATA%\Programs\TradeDeskyWatcher` and launches the app).
-2. If SmartScreen warns about an unsigned app, choose **More info → Run anyway** (releases are unsigned until code signing is configured in CI).
+2. Windows SmartScreen should show **Chapi Labs** (or your Azure identity) after Artifact Signing is active. Until then, choose **More info → Run anyway**.
 
 Portable alternative: extract `TradeDeskyWatcher-*-win.zip` and run `TradeDeskyWatcher.exe`. Checking for updates still downloads the setup installer, which installs to `%LOCALAPPDATA%\Programs\TradeDeskyWatcher`.
 
@@ -62,4 +62,4 @@ Bundled apps update through Sparkle (macOS) and WinSparkle (Windows). Use **Chec
 ## Code signing (maintainers)
 
 - **macOS:** CI Developer ID-signs and notarizes every `main` build. Required GitHub secrets are listed in `README.md`.
-- **Windows:** Authenticode is still local-only (`scripts/sign_windows.ps1`). SmartScreen may warn until a bought code-signing certificate is added to CI.
+- **Windows:** CI Authenticode-signs `TradeDeskyWatcher.exe` and the setup installer with Azure Artifact Signing. Required GitHub secrets are listed in `README.md`. Local PFX signing remains `scripts/sign_windows.ps1`.

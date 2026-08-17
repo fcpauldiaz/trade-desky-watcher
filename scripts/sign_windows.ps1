@@ -1,4 +1,5 @@
-# Sign the Windows executable locally with Authenticode.
+# Sign the Windows executable locally with a .pfx (Authenticode).
+# CI uses Azure Artifact Signing instead; see README.md.
 param(
     [string]$CertPath = $env:WINDOWS_CERT_PATH,
     [string]$CertPassword = $env:WINDOWS_CERT_PASSWORD,

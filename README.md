@@ -111,7 +111,27 @@ macOS GitHub Actions builds **must** Developer ID-sign and notarize the app. The
 | `APPLE_API_KEY_ID` | Key ID |
 | `APPLE_API_ISSUER` | Issuer UUID |
 
-Windows CI builds stay unsigned until an Authenticode certificate is configured (`WINDOWS_CERT_PATH` / `scripts/sign_windows.ps1`).
+Windows CI builds **must** Authenticode-sign with [Azure Artifact Signing](https://learn.microsoft.com/en-us/azure/artifact-signing/quickstart) (Trusted Signing) over GitHub OIDC. The `build-win` job fails if these secrets are missing:
+
+| Secret | Purpose |
+|--------|---------|
+| `AZURE_CLIENT_ID` | App registration (application) ID |
+| `AZURE_TENANT_ID` | Microsoft Entra tenant ID |
+| `AZURE_SUBSCRIPTION_ID` | Azure subscription ID |
+| `AZURE_TRUSTED_SIGNING_ENDPOINT` | Regional endpoint, e.g. `https://eus.codesigning.azure.net/` |
+| `AZURE_TRUSTED_SIGNING_ACCOUNT` | Artifact Signing account name |
+| `AZURE_CERT_PROFILE_NAME` | Certificate profile name (Public Trust) |
+
+Azure portal setup (once):
+
+1. Register the **Microsoft.CodeSigning** resource provider on the subscription.
+2. Create an **Artifact Signing** account in a supported region (East US is `https://eus.codesigning.azure.net/`).
+3. Assign yourself **Artifact Signing Identity Verifier** and create a **Public Trust** identity validation for Chapi Labs. This can take 1–20 business days.
+4. After the identity is **Completed**, create a **Public Trust** certificate profile.
+5. Create an App registration. Under **Certificates & secrets** → **Federated credentials**, add GitHub: org `fcpauldiaz`, repo `trade-desky-watcher`, entity **Branch**, branch `main`.
+6. On the Artifact Signing account, grant that app **Artifact Signing Certificate Profile Signer**.
+
+Local PFX signing is still `scripts/sign_windows.ps1` for machines that have a `.pfx`.
 
 Local macOS signing (same script CI uses):
 

@@ -17,6 +17,21 @@ def test_ci_macos_job_signs_and_notarizes():
     assert "MACOS_SIGN_IDENTITY" in ci
 
 
+def test_ci_windows_job_uses_azure_artifact_signing():
+    ci = CI.read_text(encoding="utf-8")
+    assert "azure/login@v2" in ci
+    assert "azure/artifact-signing-action@v2" in ci
+    assert "id-token: write" in ci
+    assert "AZURE_CLIENT_ID" in ci
+    assert "AZURE_TENANT_ID" in ci
+    assert "AZURE_SUBSCRIPTION_ID" in ci
+    assert "AZURE_TRUSTED_SIGNING_ENDPOINT" in ci
+    assert "AZURE_TRUSTED_SIGNING_ACCOUNT" in ci
+    assert "AZURE_CERT_PROFILE_NAME" in ci
+    assert "TradeDeskyWatcher.exe" in ci
+    assert "timestamp.acs.microsoft.com" in ci
+
+
 def test_ci_release_purges_cloudflare_desktop_cache():
     ci = CI.read_text(encoding="utf-8")
     assert "scripts/purge_cloudflare_desktop_cache.py" in ci

@@ -75,6 +75,9 @@ jobs:
     needs: test
     if: github.event_name != 'pull_request'
     runs-on: windows-latest
+    permissions:
+      id-token: write
+      contents: read
     steps:
       - uses: actions/checkout@v6
       - uses: actions/setup-python@v6
@@ -84,13 +87,69 @@ jobs:
       - run: python scripts/generate_icons.py
       - run: python scripts/fetch_update_frameworks.py --winsparkle
       - run: python -m PyInstaller notification_watcher.spec
-      - name: Install NSIS
-        run: choco install nsis -y
-      - run: python scripts/build_windows_installer.py
-      - name: Zip Windows build
+      - name: Resolve version
+        id: ver
         shell: pwsh
         run: |
           $version = python -c "from notification_watcher.version import __version__; print(__version__)"
+          "version=$version" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
+      - name: Azure login
+        uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+      - name: Sign Windows executable
+        uses: azure/artifact-signing-action@v2
+        with:
+          endpoint: ${{ secrets.AZURE_TRUSTED_SIGNING_ENDPOINT }}
+          signing-account-name: ${{ secrets.AZURE_TRUSTED_SIGNING_ACCOUNT }}
+          certificate-profile-name: ${{ secrets.AZURE_CERT_PROFILE_NAME }}
+          files: ${{ github.workspace }}\dist\TradeDeskyWatcher\TradeDeskyWatcher.exe
+          file-digest: SHA256
+          timestamp-rfc3161: http://timestamp.acs.microsoft.com
+          timestamp-digest: SHA256
+          description: Trade Desky Watcher
+          description-url: https://tradedesky.chapilabs.com
+          exclude-environment-credential: true
+          exclude-workload-identity-credential: true
+          exclude-managed-identity-credential: true
+          exclude-shared-token-cache-credential: true
+          exclude-visual-studio-credential: true
+          exclude-visual-studio-code-credential: true
+          exclude-azure-cli-credential: false
+          exclude-azure-powershell-credential: true
+          exclude-azure-developer-cli-credential: true
+          exclude-interactive-browser-credential: true
+      - name: Install NSIS
+        run: choco install nsis -y
+      - run: python scripts/build_windows_installer.py
+      - name: Sign Windows installer
+        uses: azure/artifact-signing-action@v2
+        with:
+          endpoint: ${{ secrets.AZURE_TRUSTED_SIGNING_ENDPOINT }}
+          signing-account-name: ${{ secrets.AZURE_TRUSTED_SIGNING_ACCOUNT }}
+          certificate-profile-name: ${{ secrets.AZURE_CERT_PROFILE_NAME }}
+          files: ${{ github.workspace }}\dist\TradeDeskyWatcher-${{ steps.ver.outputs.version }}-setup.exe
+          file-digest: SHA256
+          timestamp-rfc3161: http://timestamp.acs.microsoft.com
+          timestamp-digest: SHA256
+          description: Trade Desky Watcher Setup
+          description-url: https://tradedesky.chapilabs.com
+          exclude-environment-credential: true
+          exclude-workload-identity-credential: true
+          exclude-managed-identity-credential: true
+          exclude-shared-token-cache-credential: true
+          exclude-visual-studio-credential: true
+          exclude-visual-studio-code-credential: true
+          exclude-azure-cli-credential: false
+          exclude-azure-powershell-credential: true
+          exclude-azure-developer-cli-credential: true
+          exclude-interactive-browser-credential: true
+      - name: Zip Windows build
+        shell: pwsh
+        run: |
+          $version = "${{ steps.ver.outputs.version }}"
           Compress-Archive -Path dist/TradeDeskyWatcher -DestinationPath "dist/TradeDeskyWatcher-$version-win.zip"
       - uses: actions/upload-artifact@v7
         with:
