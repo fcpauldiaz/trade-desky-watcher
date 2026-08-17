@@ -265,11 +265,11 @@ class NotificationWatcherApp(rumps.App):
         password_response = password_window.run()
         if password_response.clicked != 1:
             return
-        password = password_response.text or ""
+        password = (password_response.text or "").rstrip("\n")
         try:
             result = sign_in(email, password, self._config.platform_url)
         except AuthError as exc:
-            rumps.alert(str(exc), "Sign in failed")
+            rumps.alert("Sign in failed", str(exc))
             return
         self._config.auth_token = result["auth_token"]
         self._config.ingest_url = result["ingest_url"]

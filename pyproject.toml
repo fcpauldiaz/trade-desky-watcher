@@ -1,6 +1,6 @@
 [project]
 name = "trade-desky-watcher"
-version = "1.4.5"
+version = "1.4.6"
 description = "Trade Desky Watcher — capture OS notifications and forward them to Trade Desky"
 readme = "README.md"
 requires-python = ">=3.11"

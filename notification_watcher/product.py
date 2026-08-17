@@ -2,12 +2,15 @@ import os
 import sys
 from pathlib import Path
 
+from notification_watcher.version import __version__
+
 APP_NAME = "Trade Desky Watcher"
 APP_NAME_COMPACT = "TradeDeskyWatcher"
 COMPANY_NAME = "Chapi Labs"
 COPYRIGHT = "Copyright © 2026 Chapi Labs"
 LEGACY_APP_NAME = "Notification Watcher"
 LEGACY_APP_NAME_COMPACT = "NotificationWatcher"
+HTTP_USER_AGENT = f"{APP_NAME_COMPACT}/{__version__}"
 
 DOWNLOAD_BASE_URL = os.environ.get("TRADE_DOWNLOAD_BASE_URL", "https://tradedesky.chapilabs.com").rstrip("/")
 DOWNLOAD_PAGE_URL = f"{DOWNLOAD_BASE_URL}/download"

@@ -10,6 +10,7 @@ import urllib.request
 
 from notification_watcher import format_delivered_date, to_unix_timestamp
 from notification_watcher.config import get_app_logger, load_config
+from notification_watcher.product import HTTP_USER_AGENT
 from notification_watcher.types import AppConfig
 
 REQUEST_TIMEOUT = 10
@@ -79,6 +80,7 @@ def _post_one(url: str, payload_bytes: bytes, payload_json: str, auth_token: str
         headers={
             "Content-Type": "application/json",
             "Authorization": f"Bearer {auth_token}",
+            "User-Agent": HTTP_USER_AGENT,
         },
         method="POST",
     )
