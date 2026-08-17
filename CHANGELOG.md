@@ -3,6 +3,7 @@
 ## 1.4.6
 
 - Send a TradeDeskyWatcher User-Agent so Cloudflare no longer blocks sign-in and ingest (error 1010)
+- Purge Cloudflare cache for stable `/desktop` download URLs after each release
 
 ## 1.4.5
 

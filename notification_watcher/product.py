@@ -17,6 +17,12 @@ DOWNLOAD_PAGE_URL = f"{DOWNLOAD_BASE_URL}/download"
 DESKTOP_ASSETS_URL = f"{DOWNLOAD_BASE_URL}/desktop"
 APPCAST_URL = f"{DESKTOP_ASSETS_URL}/appcast.xml"
 GITHUB_REPO = "fcpauldiaz/trade-desky-watcher"
+DESKTOP_CACHE_PURGE_PATHS = (
+    "/desktop/TradeDeskyWatcher.dmg",
+    "/desktop/TradeDeskyWatcher-setup.exe",
+    "/desktop/TradeDeskyWatcher-win.zip",
+    "/desktop/appcast.xml",
+)
 
 PRODUCTION_PLATFORM_URL = "https://tradedesky.chapilabs.com"
 PRODUCTION_INGEST_URL = "https://trade-receiver.chapilabs.com/v1/ingest"
@@ -45,6 +51,11 @@ def resolved_service_url(saved: object, default: str) -> str:
             return default
         return candidate
     return default.rstrip("/")
+
+
+def desktop_cache_purge_urls(base: str | None = None) -> list[str]:
+    root = (base or DOWNLOAD_BASE_URL).rstrip("/")
+    return [f"{root}{path}" for path in DESKTOP_CACHE_PURGE_PATHS]
 
 
 def macos_bundle_plist(version: str) -> dict[str, object]:

@@ -182,6 +182,8 @@ Disable automatic checks in `config.json`:
 
 Release signing uses the `SPARKLE_ED_PRIVATE_KEY` GitHub Actions secret (32-byte Ed25519 seed, base64). The matching public key is `SUPublicEDKey` in the macOS plist and `win_sparkle_set_eddsa_public_key` on Windows.
 
+After each release upload, CI purges Cloudflare for the stable `/desktop/*` aliases. Set `CLOUDFLARE_ZONE_ID` and `CLOUDFLARE_API_TOKEN` (permission: Zone.Cache Purge) on the GitHub repo.
+
 ## License
 
 MIT — see [LICENSE](LICENSE).

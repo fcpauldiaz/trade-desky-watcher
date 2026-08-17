@@ -17,6 +17,13 @@ def test_ci_macos_job_signs_and_notarizes():
     assert "MACOS_SIGN_IDENTITY" in ci
 
 
+def test_ci_release_purges_cloudflare_desktop_cache():
+    ci = CI.read_text(encoding="utf-8")
+    assert "scripts/purge_cloudflare_desktop_cache.py" in ci
+    assert "CLOUDFLARE_ZONE_ID" in ci
+    assert "CLOUDFLARE_API_TOKEN" in ci
+
+
 def test_sign_script_rejects_non_developer_id():
     text = SIGN.read_text(encoding="utf-8")
     assert "REQUIRE_SIGNING" in text

@@ -179,3 +179,8 @@ jobs:
           files: release/*
           fail_on_unmatched_files: true
           make_latest: true
+      - name: Purge Cloudflare desktop cache
+        env:
+          CLOUDFLARE_ZONE_ID: ${{ secrets.CLOUDFLARE_ZONE_ID }}
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+        run: python scripts/purge_cloudflare_desktop_cache.py
