@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.4.3
+
+- Prompt for Full Disk Access and open System Settings when Notification Center cannot be read
+- Open the notification database read-only so a missing write grant is not reported as a generic SQLite error
+
 ## 1.4.2
 
 - Fix the macOS menu bar app crashing on launch with py2app's generic launch error

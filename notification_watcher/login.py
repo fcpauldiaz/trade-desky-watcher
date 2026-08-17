@@ -94,11 +94,16 @@ def _set_windows_launch_at_login(enabled: bool, app_path: Path | None) -> None:
                     pass
 
 
+FDA_SETTINGS_URLS = (
+    "x-apple.systempreferences:com.apple.settings.PrivacySecurity.extension?Privacy_AllFiles",
+    "x-apple.systempreferences:com.apple.preference.security?Privacy_AllFiles",
+)
+
+
 def open_full_disk_access_settings() -> None:
     if sys.platform != "darwin":
         return
-    subprocess.run(
-        ["open", "x-apple.systempreferences:com.apple.preference.security?Privacy_AllFiles"],
-        check=False,
-        timeout=5,
-    )
+    for url in FDA_SETTINGS_URLS:
+        result = subprocess.run(["open", url], check=False, timeout=5)
+        if result.returncode == 0:
+            return

@@ -13,7 +13,12 @@ import ingest_sender
 from notification_watcher.auth import AuthError, sign_in
 from notification_watcher.config import get_app_logger, get_log_path, load_config, save_config
 from notification_watcher.login import is_launch_at_login_enabled, open_full_disk_access_settings, set_launch_at_login
-from notification_watcher.macos import format_delivered_date, get_notification_db_path
+from notification_watcher.macos import (
+    can_read_notification_db,
+    format_delivered_date,
+    get_notification_db_path,
+    is_notification_db_access_error,
+)
 from notification_watcher.platform import get_backend
 from notification_watcher.native_update import start_native_or_github
 from notification_watcher.product import APP_NAME, DOWNLOAD_PAGE_URL, apply_macos_app_identity
@@ -23,6 +28,7 @@ from notification_watcher.watcher import watch
 RECENT_MAX = 10
 QUEUE_DRAIN_INTERVAL = 0.5
 FDA_RECHECK_INTERVAL = 5.0
+FDA_STATUS = "Waiting for Full Disk Access"
 POLL_LABELS = {
     0.01: "10 ms",
     0.05: "50 ms",
@@ -31,6 +37,16 @@ POLL_LABELS = {
     1.0: "1 s",
 }
 ASSETS_DIR = Path(__file__).resolve().parent / "assets"
+
+
+def prompt_full_disk_access() -> None:
+    rumps.alert(
+        "Full Disk Access required",
+        f"{APP_NAME} needs Full Disk Access to read Notification Center.\n\n"
+        "Click OK to open System Settings, then enable Trade Desky Watcher "
+        "under Privacy & Security → Full Disk Access. Quit and reopen the app afterward.",
+    )
+    open_full_disk_access_settings()
 
 
 class NotificationWatcherApp(rumps.App):
@@ -54,6 +70,7 @@ class NotificationWatcherApp(rumps.App):
         self._notif_queue: queue.Queue = queue.Queue()
         self._stop_thread = threading.Event()
         self._watcher_thread: threading.Thread | None = None
+        self._fda_prompted = False
         self._recent: list[tuple[str, str, str, str, float | None]] = []
         self._status = "Starting..."
 
@@ -77,6 +94,7 @@ class NotificationWatcherApp(rumps.App):
             ],
             None,
             rumps.MenuItem("Launch at login", callback=self._toggle_launch_at_login),
+            rumps.MenuItem("Grant Full Disk Access...", callback=self._grant_full_disk_access),
             None,
             [
                 "Account",
@@ -132,8 +150,8 @@ class NotificationWatcherApp(rumps.App):
 
     def _update_status_from_db(self) -> None:
         self._db_path = get_notification_db_path()
-        if self._db_path is None or not self._db_path.exists():
-            self._set_status("Waiting for Full Disk Access")
+        if not can_read_notification_db(self._db_path):
+            self._set_status(FDA_STATUS)
             if self._watcher_thread and self._watcher_thread.is_alive():
                 self._stop_thread.set()
             return
@@ -142,21 +160,29 @@ class NotificationWatcherApp(rumps.App):
             self._stop_thread.clear()
             self._start_watcher_thread()
 
+    def _grant_full_disk_access(self, _: rumps.MenuItem) -> None:
+        prompt_full_disk_access()
+        self._fda_prompted = True
+
     def _recheck_permissions(self, _: rumps.Timer) -> None:
         path = get_notification_db_path()
-        exists = path is not None and path.exists()
-        if exists and self._status.startswith("Waiting"):
+        readable = can_read_notification_db(path)
+        if readable and self._status.startswith("Waiting"):
             self._db_path = path
+            self._fda_prompted = False
             self._update_status_from_db()
             rumps.notification(
                 APP_NAME,
                 "Full Disk Access granted",
                 "Now watching notifications.",
             )
-        elif not exists and self._status == "Watching":
-            self._set_status("Waiting for Full Disk Access")
-            self._stop_thread.set()
-            open_full_disk_access_settings()
+        elif not readable:
+            if self._watcher_thread and self._watcher_thread.is_alive():
+                self._stop_thread.set()
+            self._set_status(FDA_STATUS)
+            if not self._fda_prompted:
+                self._fda_prompted = True
+                prompt_full_disk_access()
 
     def _apply_poll_menu_state(self) -> None:
         label = POLL_LABELS.get(self._poll_seconds, "500 ms")
@@ -214,6 +240,9 @@ class NotificationWatcherApp(rumps.App):
         self._notif_queue.put((app_id, title, subtitle, body, delivered_date))
 
     def _on_error(self, exc: Exception) -> None:
+        if is_notification_db_access_error(exc):
+            self._set_status(FDA_STATUS)
+            return
         self._set_status(f"Error: {exc}")
 
     def _watcher_loop(self) -> None:
@@ -371,15 +400,10 @@ class NotificationWatcherApp(rumps.App):
 
 
 def main() -> None:
-    path = get_notification_db_path()
-    if path is None or not path.exists():
-        rumps.alert(
-            "Full Disk Access required",
-            f"{APP_NAME} needs Full Disk Access to read notifications.\n\n"
-            "System Settings will open. Add this app (or Terminal) to Full Disk Access.",
-        )
-        open_full_disk_access_settings()
     app = NotificationWatcherApp()
+    if not can_read_notification_db(app._db_path):
+        prompt_full_disk_access()
+        app._fda_prompted = True
     app.run()
 
 
