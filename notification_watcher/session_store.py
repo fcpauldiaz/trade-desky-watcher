@@ -105,5 +105,8 @@ def _migrate_legacy_session() -> StoredSession | None:
         account_email=email if isinstance(email, str) and email.strip() else None,
         ingest_url=ingest.strip() if isinstance(ingest, str) and ingest.strip() else DEFAULT_INGEST_URL,
     )
-    save_stored_session(session)
+    try:
+        save_stored_session(session)
+    except OSError:
+        pass
     return session
