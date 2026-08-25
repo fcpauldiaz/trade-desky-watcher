@@ -10,6 +10,7 @@ from pathlib import Path
 import rumps
 
 import ingest_sender
+from notification_watcher.account_status import format_status_line
 from notification_watcher.auth import AuthError, sign_in
 from notification_watcher.config import get_app_logger, get_log_path, load_config, save_config
 from notification_watcher.login import is_launch_at_login_enabled, open_full_disk_access_settings, set_launch_at_login
@@ -117,7 +118,6 @@ class NotificationWatcherApp(rumps.App):
         self._poll_menu = self.menu["Poll interval"]
         self._recent_menu = self.menu["Recent"]
         self._launch_item = self.menu["Launch at login"]
-        self._refresh_account_status()
 
         self._apply_poll_menu_state()
         self._launch_item.state = is_launch_at_login_enabled()
@@ -131,6 +131,11 @@ class NotificationWatcherApp(rumps.App):
         self._native_updater = start_native_or_github(
             automatic=self._config.check_for_updates,
         )
+        if self._config.is_signed_in():
+            get_app_logger().info(
+                "Restored session for %s",
+                self._config.account_email or "signed-in user",
+            )
         get_app_logger().info("App started (db=%s)", self._db_path)
 
     def _save_config(self) -> None:
@@ -139,7 +144,7 @@ class NotificationWatcherApp(rumps.App):
 
     def _set_status(self, status: str) -> None:
         self._status = status
-        self._status_item.title = f"Status: {status}"
+        self._status_item.title = f"Status: {format_status_line(status, self._config)}"
 
     def _update_status_from_db(self) -> None:
         self._db_path = get_notification_db_path()
@@ -233,13 +238,6 @@ class NotificationWatcherApp(rumps.App):
         self._watcher_thread = threading.Thread(target=self._watcher_loop, daemon=True)
         self._watcher_thread.start()
 
-    def _refresh_account_status(self) -> None:
-        if self._config.is_signed_in():
-            email = self._config.account_email or "signed in"
-            self._set_status(f"Signed in as {email}")
-        elif self._status == "Watching":
-            self._set_status("Watching (not signed in)")
-
     def _sign_in(self, _: rumps.MenuItem) -> None:
         email_window = rumps.Window(
             message="Trade Platform email:",
@@ -275,7 +273,7 @@ class NotificationWatcherApp(rumps.App):
         self._config.ingest_url = result["ingest_url"]
         self._config.account_email = result["account_email"]
         save_config(self._config)
-        self._refresh_account_status()
+        self._set_status(self._status)
         ingest_sender.flush_pending(self._config)
         rumps.notification(APP_NAME, "Signed in", result["account_email"])
 

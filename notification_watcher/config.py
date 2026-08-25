@@ -12,6 +12,12 @@ from notification_watcher.product import (
     LEGACY_APP_NAME,
     resolved_service_url,
 )
+from notification_watcher.session_store import (
+    clear_stored_session,
+    load_stored_session,
+    save_stored_session,
+    session_from_config,
+)
 from notification_watcher.types import AppConfig
 
 CONFIG_FILENAME = "config.json"
@@ -66,33 +72,52 @@ def default_config() -> AppConfig:
 def load_config() -> AppConfig:
     path = get_config_path()
     if not path.exists():
-        return default_config()
-    try:
-        data = json.loads(path.read_text(encoding="utf-8"))
-    except (OSError, json.JSONDecodeError):
-        return default_config()
-    if not isinstance(data, dict):
-        return default_config()
-    poll = data.get("poll_seconds")
-    poll_seconds = float(poll) if isinstance(poll, (int, float)) and poll > 0 else 0.5
-    platform_url = data.get("platform_url")
-    ingest_url = data.get("ingest_url")
-    auth_token = data.get("auth_token")
-    account_email = data.get("account_email")
-    return AppConfig(
-        poll_seconds=poll_seconds,
-        launch_at_login=bool(data.get("launch_at_login", False)),
-        check_for_updates=bool(data.get("check_for_updates", True)),
-        platform_url=resolved_service_url(platform_url, DEFAULT_PLATFORM_URL),
-        ingest_url=resolved_service_url(ingest_url, DEFAULT_INGEST_URL),
-        auth_token=auth_token if isinstance(auth_token, str) and auth_token else None,
-        account_email=account_email if isinstance(account_email, str) and account_email else None,
-    )
+        config = default_config()
+    else:
+        try:
+            data = json.loads(path.read_text(encoding="utf-8"))
+        except (OSError, json.JSONDecodeError):
+            config = default_config()
+        else:
+            if not isinstance(data, dict):
+                config = default_config()
+            else:
+                poll = data.get("poll_seconds")
+                poll_seconds = float(poll) if isinstance(poll, (int, float)) and poll > 0 else 0.5
+                platform_url = data.get("platform_url")
+                ingest_url = data.get("ingest_url")
+                auth_token = data.get("auth_token")
+                account_email = data.get("account_email")
+                config = AppConfig(
+                    poll_seconds=poll_seconds,
+                    launch_at_login=bool(data.get("launch_at_login", False)),
+                    check_for_updates=bool(data.get("check_for_updates", True)),
+                    platform_url=resolved_service_url(platform_url, DEFAULT_PLATFORM_URL),
+                    ingest_url=resolved_service_url(ingest_url, DEFAULT_INGEST_URL),
+                    auth_token=auth_token if isinstance(auth_token, str) and auth_token else None,
+                    account_email=account_email if isinstance(account_email, str) and account_email else None,
+                )
+    session = load_stored_session()
+    if session is not None:
+        config.auth_token = session.auth_token
+        config.account_email = session.account_email
+        config.ingest_url = resolved_service_url(session.ingest_url, DEFAULT_INGEST_URL)
+    return config
+
+
+def _atomic_write_text(path: Path, content: str) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    tmp = path.with_suffix(f"{path.suffix}.tmp")
+    tmp.write_text(content, encoding="utf-8")
+    tmp.replace(path)
 
 
 def save_config(config: AppConfig) -> None:
     path = get_config_path()
-    path.parent.mkdir(parents=True, exist_ok=True)
+    if config.auth_token:
+        save_stored_session(session_from_config(config.auth_token, config.account_email, config.ingest_url))
+    else:
+        clear_stored_session()
     data = {
         "poll_seconds": config.poll_seconds,
         "launch_at_login": config.launch_at_login,
@@ -102,4 +127,4 @@ def save_config(config: AppConfig) -> None:
         "auth_token": config.auth_token,
         "account_email": config.account_email,
     }
-    path.write_text(json.dumps(data, indent=2), encoding="utf-8")
+    _atomic_write_text(path, json.dumps(data, indent=2))
