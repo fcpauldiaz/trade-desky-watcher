@@ -16,6 +16,7 @@ import pystray
 from PIL import Image, ImageDraw
 
 import ingest_sender
+from notification_watcher.account_status import format_status_line
 from notification_watcher.auth import AuthError, sign_in
 from notification_watcher.config import get_app_logger, get_log_path, load_config, save_config
 from notification_watcher.login import is_launch_at_login_enabled, set_launch_at_login
@@ -80,6 +81,11 @@ class WindowsNotificationApp:
             automatic=self._config.check_for_updates,
             on_shutdown=self._sparkle_shutdown,
         )
+        if self._config.is_signed_in():
+            get_app_logger().info(
+                "Restored session for %s",
+                self._config.account_email or "signed-in user",
+            )
 
     def _save_config(self) -> None:
         self._config.poll_seconds = self._poll_seconds
@@ -89,6 +95,9 @@ class WindowsNotificationApp:
         self._status = status
         if self._icon:
             self._icon.update_menu()
+
+    def _status_label(self) -> str:
+        return format_status_line(self._status, self._config)
 
     def _start_background_tasks(self) -> None:
         threading.Thread(target=self._drain_loop, daemon=True).start()
@@ -177,7 +186,7 @@ class WindowsNotificationApp:
 
     def _build_menu(self) -> pystray.Menu:
         items: list[pystray.MenuItem | pystray.Menu] = [
-            pystray.MenuItem(f"Status: {self._status}", None, enabled=False),
+            pystray.MenuItem(lambda _: self._status_label(), None, enabled=False),
             pystray.Menu.SEPARATOR,
         ]
         recent_items: list[pystray.MenuItem] = []
@@ -305,6 +314,7 @@ class WindowsNotificationApp:
         self._config.ingest_url = result["ingest_url"]
         self._config.account_email = result["account_email"]
         save_config(self._config)
+        self._set_status(self._status)
         ingest_sender.flush_pending(self._config)
         messagebox.showinfo("Signed in", result["account_email"])
 

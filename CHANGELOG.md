@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.4.8
+
+- Persist sign-in in a dedicated `session.json` with atomic writes so device tokens survive app restarts
+- Migrate legacy `config.json` auth tokens into `session.json` on first launch
+- Show signed-in email in the macOS and Windows tray status after restart
+
 ## 1.4.7
 
 - Read Notification Center's SQLite WAL so new Discord banners are visible before a checkpoint

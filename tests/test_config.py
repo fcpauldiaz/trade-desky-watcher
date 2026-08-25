@@ -17,6 +17,7 @@ def test_default_config():
 
 
 def test_config_round_trip(tmp_path: Path, monkeypatch):
+    monkeypatch.setattr("notification_watcher.config.get_config_dir", lambda: tmp_path)
     monkeypatch.setattr(
         "notification_watcher.config.get_config_path",
         lambda: tmp_path / "config.json",
@@ -52,6 +53,7 @@ def test_load_config_replaces_loopback_platform_url(tmp_path: Path, monkeypatch)
         json.dumps({"platform_url": "http://localhost:3000", "ingest_url": "http://localhost:8000/v1/ingest"}),
         encoding="utf-8",
     )
+    monkeypatch.setattr("notification_watcher.config.get_config_dir", lambda: tmp_path)
     monkeypatch.setattr("notification_watcher.config.get_config_path", lambda: path)
     loaded = load_config()
     assert loaded.platform_url == "https://tradedesky.chapilabs.com"
@@ -61,6 +63,7 @@ def test_load_config_replaces_loopback_platform_url(tmp_path: Path, monkeypatch)
 def test_load_config_invalid_json(tmp_path: Path, monkeypatch):
     path = tmp_path / "config.json"
     path.write_text("{not json", encoding="utf-8")
+    monkeypatch.setattr("notification_watcher.config.get_config_dir", lambda: tmp_path)
     monkeypatch.setattr("notification_watcher.config.get_config_path", lambda: path)
     assert load_config() == default_config()
 
