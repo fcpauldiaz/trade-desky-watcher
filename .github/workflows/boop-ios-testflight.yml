@@ -42,40 +42,34 @@ jobs:
           export KEY_PATH
           ruby <<'RUBY'
           require "spaceship/connect_api"
-          require "spaceship/connect_api/token"
+          require "spaceship/connect_api/spaceship"
 
-          token = Spaceship::ConnectAPI::Token.create(
+          Spaceship::ConnectAPI.auth(
             key_id: ENV.fetch("APPLE_API_KEY_ID"),
             issuer_id: ENV.fetch("APPLE_API_ISSUER"),
             filepath: ENV.fetch("KEY_PATH")
           )
-          Spaceship::ConnectAPI.token = token
 
-          bundle_id = Spaceship::ConnectAPI::BundleId
-            .all(filter: { identifier: "com.chapilabs.boop" })
-            .first
-
-          unless bundle_id
-            bundle_id = Spaceship::ConnectAPI::BundleId.create(
+          bundle_id_record = Spaceship::ConnectAPI::BundleId.find("com.chapilabs.boop")
+          unless bundle_id_record
+            Spaceship::ConnectAPI::BundleId.create(
               name: "Boop",
               identifier: "com.chapilabs.boop",
-              platform: "IOS"
+              platform: Spaceship::ConnectAPI::BundleIdPlatform::IOS
             )
             puts "Created bundle id com.chapilabs.boop"
           else
             puts "Bundle id com.chapilabs.boop already exists"
           end
 
-          app = Spaceship::ConnectAPI::App
-            .all(filter: { bundleId: "com.chapilabs.boop" })
-            .first
-
+          app = Spaceship::ConnectAPI::App.find("com.chapilabs.boop")
           unless app
-            app = Spaceship::ConnectAPI::App.create(
+            Spaceship::ConnectAPI::App.create(
               name: "Boop",
               primary_locale: "en-US",
               sku: "com.chapilabs.boop",
-              bundle_id: bundle_id.id
+              bundle_id: "com.chapilabs.boop",
+              version_string: "1.3.0"
             )
             puts "Created App Store Connect app Boop"
           else
@@ -156,6 +150,7 @@ jobs:
 
               pilot(
                 api_key: api_key,
+                app_identifier: "com.chapilabs.boop",
                 ipa: ENV.fetch("IPA_PATH"),
                 skip_waiting_for_build_processing: true,
                 distribute_external: false
