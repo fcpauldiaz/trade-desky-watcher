@@ -39,8 +39,8 @@ jobs:
         run: |
           gem install fastlane --no-document
           KEY_PATH="$HOME/.appstoreconnect/private_keys/AuthKey_${APPLE_API_KEY_ID}.p8"
-          mkdir -p /tmp/boop-fastlane
-          cat > /tmp/boop-fastlane/Fastfile <<'RUBY'
+          mkdir -p /tmp/boop-fastlane/fastlane
+          cat > /tmp/boop-fastlane/fastlane/Fastfile <<'RUBY'
           default_platform(:ios)
 
           platform :ios do
@@ -64,6 +64,8 @@ jobs:
                 skip_itc: false,
                 skip_devcenter: false
               )
+            rescue StandardError => e
+              UI.important("produce skipped (app may already exist): #{e.message}")
             end
           end
           RUBY
@@ -126,7 +128,7 @@ jobs:
           KEY_PATH="$HOME/.appstoreconnect/private_keys/AuthKey_${APPLE_API_KEY_ID}.p8"
           IPA="$(find "$RUNNER_TEMP/export" -name '*.ipa' | head -1)"
           test -n "${IPA}"
-          cat >> /tmp/boop-fastlane/Fastfile <<'RUBY'
+          cat >> /tmp/boop-fastlane/fastlane/Fastfile <<'RUBY'
 
           platform :ios do
             lane :upload_boop do
