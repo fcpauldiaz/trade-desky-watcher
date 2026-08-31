@@ -45,7 +45,7 @@ jobs:
 
           platform :ios do
             lane :register_boop do
-              api_key = app_store_connect_api_key(
+              app_store_connect_api_key(
                 key_id: ENV.fetch("APPLE_API_KEY_ID"),
                 issuer_id: ENV.fetch("APPLE_API_ISSUER"),
                 key_filepath: ENV.fetch("KEY_PATH"),
@@ -54,7 +54,6 @@ jobs:
               )
 
               produce(
-                api_key: api_key,
                 app_identifier: "com.chapilabs.boop",
                 app_name: "Boop",
                 language: "en-US",
@@ -65,7 +64,8 @@ jobs:
                 skip_devcenter: false
               )
             rescue StandardError => e
-              UI.important("produce skipped (app may already exist): #{e.message}")
+              raise unless e.message.include?("already exists") || e.message.include?("App Name you entered")
+              UI.important("produce skipped: #{e.message}")
             end
           end
           RUBY
