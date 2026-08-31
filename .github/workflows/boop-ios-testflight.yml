@@ -39,38 +39,49 @@ jobs:
         run: |
           gem install fastlane --no-document
           KEY_PATH="$HOME/.appstoreconnect/private_keys/AuthKey_${APPLE_API_KEY_ID}.p8"
-          mkdir -p /tmp/boop-fastlane/fastlane
-          cat > /tmp/boop-fastlane/fastlane/Fastfile <<'RUBY'
-          default_platform(:ios)
+          export KEY_PATH
+          ruby <<'RUBY'
+          require "spaceship/connect_api"
+          require "spaceship/connect_api/token"
 
-          platform :ios do
-            lane :register_boop do
-              app_store_connect_api_key(
-                key_id: ENV.fetch("APPLE_API_KEY_ID"),
-                issuer_id: ENV.fetch("APPLE_API_ISSUER"),
-                key_filepath: ENV.fetch("KEY_PATH"),
-                duration: 1200,
-                in_house: false
-              )
+          token = Spaceship::ConnectAPI::Token.create(
+            key_id: ENV.fetch("APPLE_API_KEY_ID"),
+            issuer_id: ENV.fetch("APPLE_API_ISSUER"),
+            filepath: ENV.fetch("KEY_PATH")
+          )
+          Spaceship::ConnectAPI.token = token
 
-              produce(
-                app_identifier: "com.chapilabs.boop",
-                app_name: "Boop",
-                language: "en-US",
-                app_version: "1.3.0",
-                sku: "com.chapilabs.boop",
-                team_id: "GGGP7AV2E7",
-                skip_itc: false,
-                skip_devcenter: false
-              )
-            rescue StandardError => e
-              raise unless e.message.include?("already exists") || e.message.include?("App Name you entered")
-              UI.important("produce skipped: #{e.message}")
-            end
+          bundle_id = Spaceship::ConnectAPI::BundleId
+            .all(filter: { identifier: "com.chapilabs.boop" })
+            .first
+
+          unless bundle_id
+            bundle_id = Spaceship::ConnectAPI::BundleId.create(
+              name: "Boop",
+              identifier: "com.chapilabs.boop",
+              platform: "IOS"
+            )
+            puts "Created bundle id com.chapilabs.boop"
+          else
+            puts "Bundle id com.chapilabs.boop already exists"
+          end
+
+          app = Spaceship::ConnectAPI::App
+            .all(filter: { bundleId: "com.chapilabs.boop" })
+            .first
+
+          unless app
+            app = Spaceship::ConnectAPI::App.create(
+              name: "Boop",
+              primary_locale: "en-US",
+              sku: "com.chapilabs.boop",
+              bundle_id: bundle_id.id
+            )
+            puts "Created App Store Connect app Boop"
+          else
+            puts "App Store Connect app Boop already exists"
           end
           RUBY
-          cd /tmp/boop-fastlane
-          KEY_PATH="${KEY_PATH}" fastlane register_boop
 
       - name: Archive
         working-directory: boop/ios
@@ -125,10 +136,13 @@ jobs:
           APPLE_API_KEY_ID: ${{ secrets.APPLE_API_KEY_ID }}
           APPLE_API_ISSUER: ${{ secrets.APPLE_API_ISSUER }}
         run: |
+          gem install fastlane --no-document
           KEY_PATH="$HOME/.appstoreconnect/private_keys/AuthKey_${APPLE_API_KEY_ID}.p8"
           IPA="$(find "$RUNNER_TEMP/export" -name '*.ipa' | head -1)"
           test -n "${IPA}"
-          cat >> /tmp/boop-fastlane/fastlane/Fastfile <<'RUBY'
+          mkdir -p /tmp/boop-fastlane/fastlane
+          cat > /tmp/boop-fastlane/fastlane/Fastfile <<'RUBY'
+          default_platform(:ios)
 
           platform :ios do
             lane :upload_boop do
