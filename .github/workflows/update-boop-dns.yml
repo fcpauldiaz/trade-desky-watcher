@@ -1,0 +1,60 @@
+name: Update boop DNS
+
+on:
+  workflow_dispatch:
+
+jobs:
+  update-dns:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Point boop.chapilabs.com at supabase origin
+        env:
+          CLOUDFLARE_ZONE_ID: ${{ secrets.CLOUDFLARE_ZONE_ID }}
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          TARGET_IP: 5.161.244.214
+        run: |
+          set -euo pipefail
+
+          api() {
+            curl -fsS -X "$1" "https://api.cloudflare.com/client/v4$2" \
+              -H "Authorization: Bearer ${CLOUDFLARE_API_TOKEN}" \
+              -H "Content-Type: application/json" \
+              ${3:+--data "$3"}
+          }
+
+          upsert_a() {
+            local name="$1"
+            local ip="$2"
+            local proxied="${3:-false}"
+            local record_id payload existing
+
+            existing="$(api GET "/zones/${CLOUDFLARE_ZONE_ID}/dns_records?type=A&name=${name}")"
+            record_id="$(echo "$existing" | jq -r '.result[0].id // empty')"
+            payload="$(jq -nc --arg type A --arg name "$name" --arg content "$ip" --argjson proxied "$proxied" \
+              '{type:$type,name:$name,content:$content,proxied:$proxied,ttl:300}')"
+
+            if [ -n "$record_id" ]; then
+              api PUT "/zones/${CLOUDFLARE_ZONE_ID}/dns_records/${record_id}" "$payload" | jq -e '.success' >/dev/null
+              echo "Updated ${name} -> ${ip} (proxied=${proxied})"
+            else
+              api POST "/zones/${CLOUDFLARE_ZONE_ID}/dns_records" "$payload" | jq -e '.success' >/dev/null
+              echo "Created ${name} -> ${ip} (proxied=${proxied})"
+            fi
+          }
+
+          delete_a() {
+            local name="$1"
+            local existing record_id
+
+            existing="$(api GET "/zones/${CLOUDFLARE_ZONE_ID}/dns_records?type=A&name=${name}")"
+            record_id="$(echo "$existing" | jq -r '.result[0].id // empty')"
+            if [ -n "$record_id" ]; then
+              api DELETE "/zones/${CLOUDFLARE_ZONE_ID}/dns_records/${record_id}" | jq -e '.success' >/dev/null
+              echo "Deleted ${name}"
+            else
+              echo "No record for ${name}"
+            fi
+          }
+
+          upsert_a "boop.chapilabs.com" "${TARGET_IP}" false
+          delete_a "boop.supabase.chapilabs.com"
