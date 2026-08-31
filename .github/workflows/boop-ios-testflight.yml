@@ -69,7 +69,8 @@ jobs:
               primary_locale: "en-US",
               sku: "com.chapilabs.boop",
               bundle_id: "com.chapilabs.boop",
-              version_string: "1.3.0"
+              version_string: "1.3.0",
+              platforms: [Spaceship::ConnectAPI::Platform::IOS]
             )
             puts "Created App Store Connect app Boop"
           else
