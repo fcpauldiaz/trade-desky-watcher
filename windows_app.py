@@ -91,10 +91,13 @@ class WindowsNotificationApp:
         self._config.poll_seconds = self._poll_seconds
         save_config(self._config)
 
+    def _refresh_tray_menu(self) -> None:
+        if self._icon:
+            self._icon.menu = self._build_menu()
+
     def _set_status(self, status: str) -> None:
         self._status = status
-        if self._icon:
-            self._icon.update_menu()
+        self._refresh_tray_menu()
 
     def _status_label(self) -> str:
         return format_status_line(self._status, self._config)
@@ -172,8 +175,7 @@ class WindowsNotificationApp:
                 )
                 self._recent.insert(0, item)
                 self._recent = self._recent[:RECENT_MAX]
-                if self._icon:
-                    self._icon.update_menu()
+                self._refresh_tray_menu()
             time.sleep(QUEUE_DRAIN_INTERVAL)
 
     def _build_tray(self) -> None:
@@ -181,7 +183,7 @@ class WindowsNotificationApp:
             APP_NAME_COMPACT,
             _load_icon(),
             APP_NAME,
-            menu=self._build_menu,
+            menu=self._build_menu(),
         )
 
     def _build_menu(self) -> pystray.Menu:
