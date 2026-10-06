@@ -7,6 +7,8 @@ OutFile "..\dist\TradeDeskyWatcher-${VERSION}-setup.exe"
 InstallDir "$LOCALAPPDATA\Programs\TradeDeskyWatcher"
 RequestExecutionLevel user
 SilentInstall silent
+Icon "..\assets\icon.ico"
+UninstallIcon "..\assets\icon.ico"
 VIProductVersion "${VERSION}.0"
 VIAddVersionKey "ProductName" "Trade Desky Watcher"
 VIAddVersionKey "CompanyName" "Chapi Labs"

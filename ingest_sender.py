@@ -21,6 +21,7 @@ PENDING_MAX = 200
 _last_ingest_status: str = "Not connected"
 _last_ingest_time: float | None = None
 _pending_lock = threading.Lock()
+_ingest_send_lock = threading.Lock()
 _pending: OrderedDict[tuple[str, str, str, str, float | None], None] = OrderedDict()
 
 
@@ -189,7 +190,8 @@ def _start_send(
         payload_bytes, payload_json = build_payload(
             app_id, title, subtitle, body, delivered_date
         )
-        _post_one(ingest_url, payload_bytes, payload_json, token)
+        with _ingest_send_lock:
+            _post_one(ingest_url, payload_bytes, payload_json, token)
 
     threading.Thread(target=run_send, daemon=True).start()
 
@@ -232,8 +234,20 @@ def flush_pending(config: AppConfig | None = None) -> int:
     if not items:
         return 0
     get_app_logger().info("Flushing %s queued notification(s) after sign-in", len(items))
-    for app_id, title, subtitle, body, delivered_date in items:
-        send_notification(app_id, title, subtitle, body, delivered_date, cfg)
+
+    def run_flush() -> None:
+        ingest_url = cfg.ingest_url.strip()
+        token = cfg.auth_token
+        if not token:
+            return
+        with _ingest_send_lock:
+            for app_id, title, subtitle, body, delivered_date in items:
+                payload_bytes, payload_json = build_payload(
+                    app_id, title, subtitle, body, delivered_date
+                )
+                _post_one(ingest_url, payload_bytes, payload_json, token)
+
+    threading.Thread(target=run_flush, daemon=True).start()
     return len(items)
 
 
@@ -248,10 +262,11 @@ def send_test_connection() -> tuple[bool, str]:
         "If you see this, ingest is working.",
         None,
     )
-    ok = _post_one(
-        config.ingest_url.strip(),
-        payload_bytes,
-        payload_json,
-        config.auth_token,
-    )
+    with _ingest_send_lock:
+        ok = _post_one(
+            config.ingest_url.strip(),
+            payload_bytes,
+            payload_json,
+            config.auth_token,
+        )
     return ok, "Connection test sent" if ok else get_last_ingest_status()[0]

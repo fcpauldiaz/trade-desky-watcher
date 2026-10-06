@@ -24,6 +24,45 @@ def test_build_generic_payload():
     assert "platform" in payload
 
 
+def test_flush_pending_sends_serially(monkeypatch) -> None:
+    ingest_sender.clear_pending()
+    order: list[str] = []
+
+    class _SequentialThread:
+        def __init__(self, target, daemon: bool = True) -> None:
+            self._target = target
+
+        def start(self) -> None:
+            self._target()
+
+    def capture(
+        url: str, payload_bytes: bytes, payload_json: str, auth_token: str
+    ) -> bool:
+        order.append(payload_json)
+        return True
+
+    monkeypatch.setattr(ingest_sender.threading, "Thread", _SequentialThread)
+    monkeypatch.setattr(ingest_sender, "_post_one", capture)
+
+    unsigned = AppConfig(auth_token=None)
+    ingest_sender.send_notification(
+        "com.hnc.Discord", "First", "", "one", None, unsigned
+    )
+    ingest_sender.send_notification(
+        "com.hnc.Discord", "Second", "", "two", None, unsigned
+    )
+    signed = AppConfig(
+        auth_token="device-token",
+        ingest_url="https://trade-receiver.chapilabs.com/v1/ingest",
+    )
+    flushed = ingest_sender.flush_pending(signed)
+    assert flushed == 2
+    assert len(order) == 2
+    assert '"one"' in order[0]
+    assert '"two"' in order[1]
+    ingest_sender.clear_pending()
+
+
 def test_unsigned_discord_notifications_flush_after_sign_in(monkeypatch) -> None:
     ingest_sender.clear_pending()
     sent: list[str] = []
