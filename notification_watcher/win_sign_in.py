@@ -29,15 +29,14 @@ def show_sign_in_dialog(
 ) -> str | None:
     """Modal sign-in. ``on_submit`` returns (success, error_message). Returns signed-in email or None."""
     result: str | None = None
+    root.update_idletasks()
     win = tk.Toplevel(root)
     win.title(f"Sign in — {APP_NAME}")
     win.configure(bg=_BG)
     win.resizable(False, False)
-    win.transient(root)
-    win.grab_set()
+    win.withdraw()
 
     width, height = 420, 460
-    win.update_idletasks()
     x = (win.winfo_screenwidth() // 2) - (width // 2)
     y = (win.winfo_screenheight() // 2) - (height // 2)
     win.geometry(f"{width}x{height}+{x}+{y}")
@@ -206,6 +205,17 @@ def show_sign_in_dialog(
     win.bind("<Return>", lambda _e: submit())
     win.bind("<Escape>", lambda _e: close())
     win.protocol("WM_DELETE_WINDOW", close)
+
+    win.deiconify()
+    win.update_idletasks()
+    win.lift()
+    win.attributes("-topmost", True)
+    win.after(150, lambda: win.attributes("-topmost", False))
+    win.focus_force()
+    try:
+        win.grab_set()
+    except tk.TclError:
+        pass
 
     email_entry.focus_set()
     if initial_email:

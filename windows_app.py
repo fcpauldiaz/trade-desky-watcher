@@ -66,7 +66,14 @@ class WindowsNotificationApp:
         self._status = "Starting..."
         self._icon: pystray.Icon | None = None
         self._tk_root = tk.Tk()
-        self._tk_root.withdraw()
+        self._tk_root.title("")
+        self._tk_root.geometry("1x1+0+0")
+        try:
+            self._tk_root.attributes("-alpha", 0.0)
+        except tk.TclError:
+            self._tk_root.withdraw()
+        else:
+            self._tk_root.overrideredirect(True)
         self._tk_root.protocol("WM_DELETE_WINDOW", lambda: None)
         self._ui_queue: queue.Queue[Callable[[], None]] = queue.Queue()
         self._ui_running = False
@@ -98,16 +105,25 @@ class WindowsNotificationApp:
 
     def _run_on_ui(self, fn: Callable[[], None]) -> None:
         self._ui_queue.put(fn)
+        if self._ui_running:
+            self._tk_root.after(0, self._drain_ui_queue)
 
-    def _pump_ui_queue(self) -> None:
+    def _drain_ui_queue(self) -> None:
+        log = get_app_logger()
         while True:
             try:
                 fn = self._ui_queue.get_nowait()
             except queue.Empty:
                 break
-            fn()
+            try:
+                fn()
+            except Exception:
+                log.exception("UI action failed")
         if self._ui_running:
-            self._tk_root.after(50, self._pump_ui_queue)
+            self._tk_root.after(50, self._drain_ui_queue)
+
+    def _pump_ui_queue(self) -> None:
+        self._drain_ui_queue()
 
     def _show_db_missing_notice(self) -> None:
         messagebox.showinfo(
