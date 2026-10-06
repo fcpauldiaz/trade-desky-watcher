@@ -29,12 +29,12 @@ def test_windows_version_info_includes_copyright():
 
 
 def test_write_icons_from_trade_desky_mark(tmp_path: Path):
-    source = Path(__file__).resolve().parent.parent / "assets" / SOURCE_NAME
-    (tmp_path / SOURCE_NAME).write_bytes(source.read_bytes())
     png_path, ico_path = write_icons(tmp_path)
     assert png_path.is_file()
     assert ico_path.is_file()
     image = load_source(tmp_path)
     assert image.size == (1024, 1024)
-    r, g, b, _a = image.getpixel((280, 200))
-    assert r > 200 and g > 180 and b < 80
+    ink = image.getpixel((120, 120))
+    assert ink[:3] == (17, 17, 17)
+    lime = image.getpixel((512, 420))
+    assert lime[1] > 150 and lime[0] < 80

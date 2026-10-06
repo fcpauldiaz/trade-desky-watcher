@@ -9,8 +9,9 @@ import subprocess
 import sys
 import threading
 import tkinter as tk
+from collections.abc import Callable
 from pathlib import Path
-from tkinter import messagebox, simpledialog
+from tkinter import messagebox
 
 import pystray
 from PIL import Image, ImageDraw
@@ -26,6 +27,7 @@ from notification_watcher.native_update import start_native_or_github
 from notification_watcher.product import APP_NAME, APP_NAME_COMPACT, DOWNLOAD_PAGE_URL
 from notification_watcher.version import __version__
 from notification_watcher.watcher import watch
+from notification_watcher.win_sign_in import show_sign_in_dialog
 from notification_watcher.windows import format_delivered_date, get_notification_db_path
 
 RECENT_MAX = 10
@@ -44,10 +46,11 @@ def _load_icon() -> Image.Image:
     for name in ("icon.ico", "icon.png"):
         path = ASSETS_DIR / name
         if path.exists():
-            return Image.open(path)
-    img = Image.new("RGBA", (64, 64), (250, 204, 21, 255))
+            return Image.open(path).convert("RGBA")
+    img = Image.new("RGBA", (64, 64), (17, 17, 17, 255))
     draw = ImageDraw.Draw(img)
-    draw.rectangle((2, 2, 61, 61), outline=(0, 0, 0, 255), width=4)
+    draw.line([(16, 38), (32, 18), (48, 38)], fill=(34, 197, 94, 255), width=4)
+    draw.line([(32, 22), (32, 46)], fill=(34, 197, 94, 255), width=4)
     return img
 
 
@@ -64,15 +67,13 @@ class WindowsNotificationApp:
         self._icon: pystray.Icon | None = None
         self._tk_root = tk.Tk()
         self._tk_root.withdraw()
+        self._tk_root.protocol("WM_DELETE_WINDOW", lambda: None)
+        self._ui_queue: queue.Queue[Callable[[], None]] = queue.Queue()
+        self._ui_running = False
+        self._tray_thread: threading.Thread | None = None
 
         if self._db_path is None or not self._db_path.exists():
-            messagebox.showinfo(
-                APP_NAME,
-                "Notification database not found yet.\n\n"
-                "The app will watch:\n"
-                "%LOCALAPPDATA%\\Microsoft\\Windows\\Notifications\\wpndatabase.db\n\n"
-                "Send a test notification if watching does not start.",
-            )
+            self._run_on_ui(self._show_db_missing_notice)
 
         self._quitting_for_update = False
         self._start_background_tasks()
@@ -94,6 +95,29 @@ class WindowsNotificationApp:
     def _refresh_tray_menu(self) -> None:
         if self._icon:
             self._icon.menu = self._build_menu()
+
+    def _run_on_ui(self, fn: Callable[[], None]) -> None:
+        self._ui_queue.put(fn)
+
+    def _pump_ui_queue(self) -> None:
+        while True:
+            try:
+                fn = self._ui_queue.get_nowait()
+            except queue.Empty:
+                break
+            fn()
+        if self._ui_running:
+            self._tk_root.after(50, self._pump_ui_queue)
+
+    def _show_db_missing_notice(self) -> None:
+        messagebox.showinfo(
+            APP_NAME,
+            "Notification database not found yet.\n\n"
+            "The app will watch:\n"
+            "%LOCALAPPDATA%\\Microsoft\\Windows\\Notifications\\wpndatabase.db\n\n"
+            "Send a test notification if watching does not start.",
+            parent=self._tk_root,
+        )
 
     def _set_status(self, status: str) -> None:
         self._status = status
@@ -259,7 +283,7 @@ class WindowsNotificationApp:
 
     def _make_recent_handler(self, index: int):
         def handler(_icon, _item) -> None:
-            self._show_recent_at(index)
+            self._run_on_ui(lambda: self._show_recent_at(index))
 
         return handler
 
@@ -282,6 +306,7 @@ class WindowsNotificationApp:
             f"Title: {title}\n"
             f"Subtitle: {subtitle}\n"
             f"Body: {body}",
+            parent=self._tk_root,
         )
 
     def _toggle_launch_at_login(self, _icon, _item) -> None:
@@ -291,50 +316,55 @@ class WindowsNotificationApp:
         save_config(self._config)
 
     def _sign_in(self, _icon, _item) -> None:
-        email = simpledialog.askstring(
-            "Sign in",
-            "Trade Platform email:",
-            initialvalue=self._config.account_email or "",
-            parent=self._tk_root,
+        self._run_on_ui(self._sign_in_ui)
+
+    def _sign_in_ui(self) -> None:
+        def authenticate(email: str, password: str) -> tuple[bool, str]:
+            try:
+                result = sign_in(email, password, self._config.platform_url)
+            except AuthError as exc:
+                return False, str(exc)
+            self._config.auth_token = result["auth_token"]
+            self._config.ingest_url = result["ingest_url"]
+            self._config.account_email = result["account_email"]
+            save_config(self._config)
+            ingest_sender.flush_pending(self._config)
+            return True, ""
+
+        signed_email = show_sign_in_dialog(
+            self._tk_root,
+            initial_email=self._config.account_email or "",
+            on_submit=authenticate,
         )
-        if not email:
-            return
-        password = simpledialog.askstring(
-            "Sign in",
-            "Password:",
-            show="*",
-            parent=self._tk_root,
-        )
-        if password is None:
-            return
-        try:
-            result = sign_in(email.strip(), password, self._config.platform_url)
-        except AuthError as exc:
-            messagebox.showerror("Sign in failed", str(exc))
-            return
-        self._config.auth_token = result["auth_token"]
-        self._config.ingest_url = result["ingest_url"]
-        self._config.account_email = result["account_email"]
-        save_config(self._config)
-        self._set_status(self._status)
-        ingest_sender.flush_pending(self._config)
-        messagebox.showinfo("Signed in", result["account_email"])
+        if signed_email:
+            self._set_status(self._status)
+            messagebox.showinfo(
+                "Signed in",
+                f"You are signed in as {signed_email}.",
+                parent=self._tk_root,
+            )
 
     def _sign_out(self, _icon, _item) -> None:
+        self._run_on_ui(self._sign_out_ui)
+
+    def _sign_out_ui(self) -> None:
         if not self._config.is_signed_in():
-            messagebox.showinfo("Account", "Not signed in.")
+            messagebox.showinfo("Account", "Not signed in.", parent=self._tk_root)
             return
         self._config.auth_token = None
         self._config.account_email = None
         save_config(self._config)
-        messagebox.showinfo("Account", "Signed out.")
+        messagebox.showinfo("Account", "Signed out.", parent=self._tk_root)
 
     def _test_connection(self, _icon, _item) -> None:
+        self._run_on_ui(self._test_connection_ui)
+
+    def _test_connection_ui(self) -> None:
         ok, message = ingest_sender.send_test_connection()
         if ok:
-            messagebox.showinfo("Connection test", message)
+            messagebox.showinfo("Connection test", message, parent=self._tk_root)
         else:
-            messagebox.showerror("Connection test failed", message)
+            messagebox.showerror("Connection test failed", message, parent=self._tk_root)
 
     def _view_logs(self, _icon, _item) -> None:
         path = get_log_path()
@@ -345,19 +375,27 @@ class WindowsNotificationApp:
 
     def _sparkle_shutdown(self) -> None:
         self._quitting_for_update = True
-        self._tk_root.after(0, lambda: self._quit(self._icon, None))
+        self._run_on_ui(self._quit_ui)
 
     def _check_for_updates(self, _icon, _item) -> None:
+        self._run_on_ui(self._check_for_updates_ui)
+
+    def _check_for_updates_ui(self) -> None:
         if self._native_updater.check_now():
             return
         if messagebox.askyesno(
             "Updates",
             f"Download the latest {APP_NAME} from the Trade Desky website.\n\nOpen download page?",
+            parent=self._tk_root,
         ):
             subprocess.run(["cmd", "/c", "start", "", DOWNLOAD_PAGE_URL], check=False)
 
     def _quit(self, _icon, _item) -> None:
+        self._run_on_ui(self._quit_ui)
+
+    def _quit_ui(self) -> None:
         self._stop_thread.set()
+        self._ui_running = False
         if not self._quitting_for_update:
             self._native_updater.cleanup()
         if self._icon:
@@ -365,8 +403,13 @@ class WindowsNotificationApp:
         self._tk_root.destroy()
 
     def run(self) -> None:
-        if self._icon:
-            self._icon.run()
+        if not self._icon:
+            return
+        self._ui_running = True
+        self._tk_root.after(50, self._pump_ui_queue)
+        self._tray_thread = threading.Thread(target=self._icon.run, daemon=True)
+        self._tray_thread.start()
+        self._tk_root.mainloop()
 
 
 def main() -> None:
