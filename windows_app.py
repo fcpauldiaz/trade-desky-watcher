@@ -25,9 +25,14 @@ from notification_watcher.platform import get_backend
 from notification_watcher.types import DISCORD_APP_FILTER
 from notification_watcher.native_update import start_native_or_github
 from notification_watcher.product import APP_NAME, APP_NAME_COMPACT, DOWNLOAD_PAGE_URL
+from notification_watcher.tray_welcome import (
+    TRAY_WELCOME_BALLOON,
+    TRAY_WELCOME_DIALOG,
+    TRAY_WELCOME_TITLE,
+)
 from notification_watcher.version import __version__
 from notification_watcher.watcher import watch
-from notification_watcher.win_sign_in import show_sign_in_dialog
+from notification_watcher.sign_in_dialog import show_sign_in_dialog
 from notification_watcher.windows import format_delivered_date, get_notification_db_path
 
 RECENT_MAX = 10
@@ -382,12 +387,27 @@ class WindowsNotificationApp:
         else:
             messagebox.showerror("Connection test failed", message, parent=self._tk_root)
 
+    def _on_tray_ready(self, icon: pystray.Icon) -> None:
+        if not self._config.tray_welcome_shown:
+            try:
+                icon.notify(TRAY_WELCOME_BALLOON, TRAY_WELCOME_TITLE)
+            except Exception:
+                get_app_logger().exception("Tray welcome balloon failed")
+            self._run_on_ui(self._show_tray_welcome_dialog)
+
+    def _show_tray_welcome_dialog(self) -> None:
+        if self._config.tray_welcome_shown:
+            return
+        self._config.tray_welcome_shown = True
+        save_config(self._config)
+        messagebox.showinfo(TRAY_WELCOME_TITLE, TRAY_WELCOME_DIALOG, parent=self._tk_root)
+
     def _view_logs(self, _icon, _item) -> None:
         path = get_log_path()
         path.parent.mkdir(parents=True, exist_ok=True)
         if not path.exists():
             path.write_text("", encoding="utf-8")
-        subprocess.run(["notepad.exe", str(path)], check=False)
+        subprocess.Popen(["notepad.exe", str(path)])
 
     def _sparkle_shutdown(self) -> None:
         self._quitting_for_update = True
@@ -423,7 +443,10 @@ class WindowsNotificationApp:
             return
         self._ui_running = True
         self._tk_root.after(50, self._pump_ui_queue)
-        self._tray_thread = threading.Thread(target=self._icon.run, daemon=True)
+        self._tray_thread = threading.Thread(
+            target=lambda: self._icon.run(setup=self._on_tray_ready),
+            daemon=True,
+        )
         self._tray_thread.start()
         self._tk_root.mainloop()
 

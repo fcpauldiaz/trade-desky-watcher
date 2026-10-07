@@ -38,6 +38,15 @@ def test_config_round_trip(tmp_path: Path, monkeypatch):
     assert loaded.account_email == "user@example.com"
     assert loaded.ingest_url == "https://api.example.com/v1/ingest"
     assert loaded.platform_url == "https://app.example.com"
+    assert loaded.tray_welcome_shown is False
+
+
+def test_load_config_defaults_tray_welcome_for_existing_users(tmp_path: Path, monkeypatch):
+    path = tmp_path / "config.json"
+    path.write_text(json.dumps({"poll_seconds": 0.5}), encoding="utf-8")
+    monkeypatch.setattr("notification_watcher.config.get_config_dir", lambda: tmp_path)
+    monkeypatch.setattr("notification_watcher.config.get_config_path", lambda: path)
+    assert load_config().tray_welcome_shown is True
 
 
 def test_effective_app_filter_is_always_discord():
