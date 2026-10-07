@@ -2,6 +2,7 @@ from pathlib import Path
 
 from notification_watcher.product import (
     APP_NAME,
+    BRAND_NAME,
     COMPANY_NAME,
     COPYRIGHT,
     macos_bundle_plist,
@@ -28,10 +29,17 @@ def test_windows_version_info_includes_copyright():
     assert APP_NAME in text
 
 
+def test_brand_name():
+    assert BRAND_NAME == "Trade Desky"
+    assert APP_NAME.startswith(BRAND_NAME)
+
+
 def test_write_icons_from_trade_desky_mark(tmp_path: Path):
-    png_path, ico_path = write_icons(tmp_path)
+    png_path, ico_path, welcome_bmp, header_bmp = write_icons(tmp_path)
     assert png_path.is_file()
     assert ico_path.is_file()
+    assert welcome_bmp.is_file()
+    assert header_bmp.is_file()
     image = load_source(tmp_path)
     assert image.size == (1024, 1024)
     ink = image.getpixel((120, 120))

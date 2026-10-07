@@ -8,8 +8,13 @@ SOURCE_NAME = "icon-source.png"
 BUNDLE_SIZE = 1024
 ICO_SIZES = [(16, 16), (32, 32), (48, 48), (64, 64), (128, 128), (256, 256)]
 
+# Soft Sage canvas — matches Trade Desky marketing / NT receiver installer.
+SAGE = (242, 244, 241)
 INK = (17, 17, 17, 255)
 LIME = (34, 197, 94, 255)
+
+WELCOME_SIZE = (164, 314)
+HEADER_SIZE = (150, 57)
 
 
 def draw_mark_a(size: int) -> Image.Image:
@@ -48,7 +53,37 @@ def load_source(assets: Path) -> Image.Image:
     return generated
 
 
-def write_icons(assets: Path) -> tuple[Path, Path]:
+def _paste_centered(canvas: Image.Image, mark: Image.Image, *, max_side: int, y: int | None = None) -> None:
+    side = min(max_side, canvas.size[0] - 16, canvas.size[1] - 16)
+    logo = mark.resize((side, side), Image.Resampling.LANCZOS)
+    x = (canvas.size[0] - side) // 2
+    top = y if y is not None else (canvas.size[1] - side) // 2
+    canvas.paste(logo, (x, top), logo)
+
+
+def write_welcome_bitmap(assets: Path, mark: Image.Image) -> Path:
+    canvas = Image.new("RGB", WELCOME_SIZE, SAGE)
+    draw = ImageDraw.Draw(canvas)
+    draw.rectangle((0, 0, WELCOME_SIZE[0], 8), fill=INK)
+    _paste_centered(canvas, mark, max_side=112, y=56)
+    path = assets / "installer-welcome.bmp"
+    canvas.save(path, format="BMP")
+    return path
+
+
+def write_header_bitmap(assets: Path, mark: Image.Image) -> Path:
+    canvas = Image.new("RGB", HEADER_SIZE, SAGE)
+    side = 44
+    logo = mark.resize((side, side), Image.Resampling.LANCZOS)
+    x = HEADER_SIZE[0] - side - 6
+    y = (HEADER_SIZE[1] - side) // 2
+    canvas.paste(logo, (x, y), logo)
+    path = assets / "installer-header.bmp"
+    canvas.save(path, format="BMP")
+    return path
+
+
+def write_icons(assets: Path) -> tuple[Path, ...]:
     assets.mkdir(parents=True, exist_ok=True)
     base = load_source(assets)
     png_path = assets / "icon.png"
@@ -60,12 +95,14 @@ def write_icons(assets: Path) -> tuple[Path, Path]:
         base.save(icns_path, format="ICNS")
     except (ValueError, OSError, KeyError):
         base.resize((256, 256), Image.Resampling.LANCZOS).save(assets / "icon.icns.png")
-    return png_path, ico_path
+    welcome = write_welcome_bitmap(assets, base)
+    header = write_header_bitmap(assets, base)
+    return png_path, ico_path, welcome, header
 
 
 def main() -> None:
-    png_path, ico_path = write_icons(ASSETS)
-    print(f"Wrote {png_path}, {ico_path}")
+    paths = write_icons(ASSETS)
+    print("Wrote", ", ".join(str(p) for p in paths))
 
 
 if __name__ == "__main__":

@@ -89,12 +89,18 @@ def load_config() -> AppConfig:
                 ingest_url = data.get("ingest_url")
                 auth_token = data.get("auth_token")
                 account_email = data.get("account_email")
+                tray_welcome = data.get("tray_welcome_shown")
+                if tray_welcome is None:
+                    tray_welcome_shown = True
+                else:
+                    tray_welcome_shown = bool(tray_welcome)
                 resolved_platform = resolved_service_url(platform_url, DEFAULT_PLATFORM_URL)
                 resolved_ingest = resolved_service_url(ingest_url, DEFAULT_INGEST_URL)
                 config = AppConfig(
                     poll_seconds=poll_seconds,
                     launch_at_login=bool(data.get("launch_at_login", False)),
                     check_for_updates=bool(data.get("check_for_updates", True)),
+                    tray_welcome_shown=tray_welcome_shown,
                     platform_url=resolved_platform,
                     ingest_url=resolved_ingest,
                     auth_token=auth_token if isinstance(auth_token, str) and auth_token else None,
@@ -139,6 +145,7 @@ def save_config(config: AppConfig) -> None:
         "poll_seconds": config.poll_seconds,
         "launch_at_login": config.launch_at_login,
         "check_for_updates": config.check_for_updates,
+        "tray_welcome_shown": config.tray_welcome_shown,
         "platform_url": config.platform_url,
         "ingest_url": config.ingest_url,
         "auth_token": config.auth_token,
