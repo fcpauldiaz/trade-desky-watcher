@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.4.13
+
+- Sign in and ingest against tradedesky.com. Saved chapilabs platform and ingest URLs are rewritten on launch.
+
 ## 1.4.8
 
 - Persist sign-in in a dedicated `session.json` with atomic writes so device tokens survive app restarts

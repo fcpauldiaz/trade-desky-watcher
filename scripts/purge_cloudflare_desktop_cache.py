@@ -14,7 +14,12 @@ ROOT = Path(__file__).resolve().parent.parent
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
-from notification_watcher.product import HTTP_USER_AGENT, desktop_cache_purge_urls
+from notification_watcher.product import (
+    HTTP_USER_AGENT,
+    LEGACY_DOWNLOAD_BASE_URL,
+    DOWNLOAD_BASE_URL,
+    desktop_cache_purge_urls,
+)
 
 API_URL = "https://api.cloudflare.com/client/v4/zones/{zone_id}/purge_cache"
 
@@ -42,9 +47,17 @@ def main() -> int:
     token = os.environ.get("CLOUDFLARE_API_TOKEN", "").strip()
     if not zone_id or not token:
         raise SystemExit("CLOUDFLARE_ZONE_ID and CLOUDFLARE_API_TOKEN are required")
-    urls = desktop_cache_purge_urls()
-    result = purge_urls(zone_id, token, urls)
-    print(json.dumps({"purged": urls, "result": result.get("result")}, indent=2))
+    purged: list[str] = []
+    legacy = desktop_cache_purge_urls(LEGACY_DOWNLOAD_BASE_URL)
+    purged.extend(legacy)
+    result = purge_urls(zone_id, token, legacy)
+    site_zone_id = os.environ.get("CLOUDFLARE_SITE_ZONE_ID", "").strip()
+    site_result: dict[str, object] | None = None
+    current = desktop_cache_purge_urls(DOWNLOAD_BASE_URL)
+    if site_zone_id:
+        site_result = purge_urls(site_zone_id, token, current)
+        purged.extend(current)
+    print(json.dumps({"purged": purged, "result": result.get("result"), "site": None if site_result is None else site_result.get("result")}, indent=2))
     return 0
 
 

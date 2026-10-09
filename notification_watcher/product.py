@@ -12,7 +12,8 @@ LEGACY_APP_NAME = "Notification Watcher"
 LEGACY_APP_NAME_COMPACT = "NotificationWatcher"
 HTTP_USER_AGENT = f"{APP_NAME_COMPACT}/{__version__}"
 
-DOWNLOAD_BASE_URL = os.environ.get("TRADE_DOWNLOAD_BASE_URL", "https://tradedesky.chapilabs.com").rstrip("/")
+DOWNLOAD_BASE_URL = os.environ.get("TRADE_DOWNLOAD_BASE_URL", "https://tradedesky.com").rstrip("/")
+LEGACY_DOWNLOAD_BASE_URL = "https://tradedesky.chapilabs.com"
 DOWNLOAD_PAGE_URL = f"{DOWNLOAD_BASE_URL}/download"
 DESKTOP_ASSETS_URL = f"{DOWNLOAD_BASE_URL}/desktop"
 APPCAST_URL = f"{DESKTOP_ASSETS_URL}/appcast.xml"
@@ -24,8 +25,9 @@ DESKTOP_CACHE_PURGE_PATHS = (
     "/desktop/appcast.xml",
 )
 
-PRODUCTION_PLATFORM_URL = "https://tradedesky.chapilabs.com"
-PRODUCTION_INGEST_URL = "https://trade-receiver.chapilabs.com/v1/ingest"
+PRODUCTION_PLATFORM_URL = "https://tradedesky.com"
+PRODUCTION_INGEST_URL = "https://api.tradedesky.com/v1/ingest"
+LEGACY_SERVICE_HOSTS = frozenset({"tradedesky.chapilabs.com", "trade-receiver.chapilabs.com"})
 DEFAULT_PLATFORM_URL = os.environ.get("TRADE_PLATFORM_URL", PRODUCTION_PLATFORM_URL).rstrip("/")
 DEFAULT_INGEST_URL = os.environ.get("TRADE_INGEST_URL", PRODUCTION_INGEST_URL).rstrip("/")
 
@@ -44,10 +46,17 @@ def is_loopback_url(url: str) -> bool:
     return "localhost" in lowered or "127.0.0.1" in lowered
 
 
+def _url_host(url: str) -> str:
+    without_scheme = url.split("://", 1)[-1]
+    return without_scheme.split("/", 1)[0].split(":", 1)[0].lower()
+
+
 def resolved_service_url(saved: object, default: str) -> str:
     if isinstance(saved, str) and saved.strip():
         candidate = saved.strip().rstrip("/")
         if is_loopback_url(candidate) and not is_loopback_url(default):
+            return default
+        if _url_host(candidate) in LEGACY_SERVICE_HOSTS and _url_host(candidate) != _url_host(default):
             return default
         return candidate
     return default.rstrip("/")

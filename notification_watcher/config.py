@@ -71,6 +71,7 @@ def default_config() -> AppConfig:
 
 def load_config() -> AppConfig:
     path = get_config_path()
+    rewritten = False
     if not path.exists():
         config = default_config()
     else:
@@ -88,21 +89,37 @@ def load_config() -> AppConfig:
                 ingest_url = data.get("ingest_url")
                 auth_token = data.get("auth_token")
                 account_email = data.get("account_email")
+                resolved_platform = resolved_service_url(platform_url, DEFAULT_PLATFORM_URL)
+                resolved_ingest = resolved_service_url(ingest_url, DEFAULT_INGEST_URL)
                 config = AppConfig(
                     poll_seconds=poll_seconds,
                     launch_at_login=bool(data.get("launch_at_login", False)),
                     check_for_updates=bool(data.get("check_for_updates", True)),
-                    platform_url=resolved_service_url(platform_url, DEFAULT_PLATFORM_URL),
-                    ingest_url=resolved_service_url(ingest_url, DEFAULT_INGEST_URL),
+                    platform_url=resolved_platform,
+                    ingest_url=resolved_ingest,
                     auth_token=auth_token if isinstance(auth_token, str) and auth_token else None,
                     account_email=account_email if isinstance(account_email, str) and account_email else None,
+                )
+                rewritten = _stored_url_changed(platform_url, resolved_platform) or _stored_url_changed(
+                    ingest_url, resolved_ingest
                 )
     session = load_stored_session()
     if session is not None:
         config.auth_token = session.auth_token
         config.account_email = session.account_email
-        config.ingest_url = resolved_service_url(session.ingest_url, DEFAULT_INGEST_URL)
+        resolved_session_ingest = resolved_service_url(session.ingest_url, DEFAULT_INGEST_URL)
+        if _stored_url_changed(session.ingest_url, resolved_session_ingest):
+            rewritten = True
+        config.ingest_url = resolved_session_ingest
+    if rewritten:
+        save_config(config)
     return config
+
+
+def _stored_url_changed(saved: object, resolved: str) -> bool:
+    if not isinstance(saved, str) or not saved.strip():
+        return False
+    return saved.strip().rstrip("/") != resolved.rstrip("/")
 
 
 def _atomic_write_text(path: Path, content: str) -> None:
