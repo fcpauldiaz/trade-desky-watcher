@@ -23,8 +23,10 @@ If notifications are not detected, remove and re-add Full Disk Access, then rest
 
 ## Windows
 
-1. Run `TradeDeskyWatcher-*-setup.exe` (installs to `%LOCALAPPDATA%\Programs\TradeDeskyWatcher` and launches the app).
-2. If SmartScreen warns about an unsigned app, choose **More info → Run anyway** (releases are unsigned until code signing is configured in CI).
+1. Run `TradeDeskyWatcher-*-setup.exe` (installs to `%LOCALAPPDATA%\Programs\TradeDeskyWatcher`).
+2. On the branded **Trade Desky** setup wizard, read the tray instructions on **Setup complete**, then leave **Launch Trade Desky Watcher now** checked and click Finish.
+3. Look for the **Trade Desky** icon (lime arrow on dark tile) in the **notification area** (bottom-right). Click **^** if it is hidden. Right-click → **Account → Sign in…**
+4. If SmartScreen warns about an unsigned app, choose **More info → Run anyway** (releases are unsigned until code signing is configured in CI).
 
 Portable alternative: extract `TradeDeskyWatcher-*-win.zip` and run `TradeDeskyWatcher.exe`. Checking for updates still downloads the setup installer, which installs to `%LOCALAPPDATA%\Programs\TradeDeskyWatcher`.
 

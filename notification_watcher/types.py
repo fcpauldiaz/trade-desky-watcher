@@ -16,6 +16,7 @@ class AppConfig:
     poll_seconds: float = 0.5
     launch_at_login: bool = False
     check_for_updates: bool = True
+    tray_welcome_shown: bool = False
     platform_url: str = DEFAULT_PLATFORM_URL
     ingest_url: str = DEFAULT_INGEST_URL
     auth_token: str | None = None

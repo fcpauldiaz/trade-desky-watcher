@@ -4,6 +4,7 @@ from pathlib import Path
 
 from notification_watcher.version import __version__
 
+BRAND_NAME = "Trade Desky"
 APP_NAME = "Trade Desky Watcher"
 APP_NAME_COMPACT = "TradeDeskyWatcher"
 COMPANY_NAME = "Chapi Labs"

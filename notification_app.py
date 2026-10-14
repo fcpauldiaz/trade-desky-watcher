@@ -5,6 +5,7 @@ Menu bar app for watching macOS Notification Center. Requires Full Disk Access.
 import queue
 import subprocess
 import threading
+import tkinter as tk
 from pathlib import Path
 
 import rumps
@@ -25,6 +26,7 @@ from notification_watcher.native_update import start_native_or_github
 from notification_watcher.product import APP_NAME, DOWNLOAD_PAGE_URL, apply_macos_app_identity
 from notification_watcher.types import DISCORD_APP_FILTER
 from notification_watcher.version import __version__
+from notification_watcher.sign_in_dialog import show_sign_in_dialog
 from notification_watcher.watcher import watch
 
 RECENT_MAX = 10
@@ -239,43 +241,30 @@ class NotificationWatcherApp(rumps.App):
         self._watcher_thread.start()
 
     def _sign_in(self, _: rumps.MenuItem) -> None:
-        email_window = rumps.Window(
-            message="Trade Platform email:",
-            title="Sign in",
-            default_text=self._config.account_email or "",
-            ok="Next",
-            cancel="Cancel",
+        root = tk.Tk()
+        root.withdraw()
+
+        def authenticate(email: str, password: str) -> tuple[bool, str]:
+            try:
+                result = sign_in(email, password, self._config.platform_url)
+            except AuthError as exc:
+                return False, str(exc)
+            self._config.auth_token = result["auth_token"]
+            self._config.ingest_url = result["ingest_url"]
+            self._config.account_email = result["account_email"]
+            save_config(self._config)
+            ingest_sender.flush_pending(self._config)
+            return True, ""
+
+        signed_email = show_sign_in_dialog(
+            root,
+            initial_email=self._config.account_email or "",
+            on_submit=authenticate,
         )
-        email_response = email_window.run()
-        if email_response.clicked != 1:
-            return
-        email = (email_response.text or "").strip()
-        if not email:
-            rumps.alert("Email is required.", "Sign in")
-            return
-        password_window = rumps.Window(
-            message="Password:",
-            title="Sign in",
-            default_text="",
-            ok="Sign in",
-            cancel="Cancel",
-        )
-        password_response = password_window.run()
-        if password_response.clicked != 1:
-            return
-        password = (password_response.text or "").rstrip("\n")
-        try:
-            result = sign_in(email, password, self._config.platform_url)
-        except AuthError as exc:
-            rumps.alert("Sign in failed", str(exc))
-            return
-        self._config.auth_token = result["auth_token"]
-        self._config.ingest_url = result["ingest_url"]
-        self._config.account_email = result["account_email"]
-        save_config(self._config)
-        self._set_status(self._status)
-        ingest_sender.flush_pending(self._config)
-        rumps.notification(APP_NAME, "Signed in", result["account_email"])
+        root.destroy()
+        if signed_email:
+            self._set_status(self._status)
+            rumps.notification(APP_NAME, "Signed in", signed_email)
 
     def _sign_out(self, _: rumps.MenuItem) -> None:
         if not self._config.is_signed_in():
