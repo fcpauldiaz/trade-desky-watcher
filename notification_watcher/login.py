@@ -11,8 +11,12 @@ REGISTRY_APP_NAME = APP_NAME_COMPACT
 
 
 def _macos_app_path() -> Path | None:
-    if getattr(sys, "frozen", False):
-        return Path(sys.executable).resolve().parent.parent
+    if not getattr(sys, "frozen", False):
+        return None
+    path = Path(sys.executable).resolve()
+    for candidate in (path, *path.parents):
+        if candidate.suffix == ".app":
+            return candidate
     return None
 
 
@@ -47,6 +51,31 @@ def set_launch_at_login(enabled: bool, app_path: Path | None = None) -> None:
         _set_macos_launch_at_login(enabled, app_path)
     elif sys.platform == "win32":
         _set_windows_launch_at_login(enabled, app_path)
+
+
+def repair_macos_launch_agent_if_needed(app_path: Path | None = None) -> bool:
+    """Rewrite a RunAtLoad agent that points at Contents instead of the .app bundle."""
+    if sys.platform != "darwin":
+        return False
+    resolved = app_path or _macos_app_path()
+    if resolved is None or not resolved.suffix == ".app":
+        return False
+    for label in (LAUNCH_AGENT_ID, LEGACY_BUNDLE_ID):
+        path = _plist_path(label)
+        if not path.exists():
+            continue
+        try:
+            data = plistlib.loads(path.read_bytes())
+        except (OSError, ValueError, plistlib.InvalidFileException):
+            _set_macos_launch_at_login(True, resolved)
+            return True
+        args = data.get("ProgramArguments") or []
+        target = str(args[-1]) if args else ""
+        if Path(target).resolve() == resolved.resolve():
+            return False
+        _set_macos_launch_at_login(True, resolved)
+        return True
+    return False
 
 
 def _set_macos_launch_at_login(enabled: bool, app_path: Path | None) -> None:

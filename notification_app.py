@@ -14,7 +14,12 @@ import ingest_sender
 from notification_watcher.account_status import format_status_line
 from notification_watcher.auth import AuthError, sign_in
 from notification_watcher.config import get_app_logger, get_log_path, load_config, save_config
-from notification_watcher.login import is_launch_at_login_enabled, open_full_disk_access_settings, set_launch_at_login
+from notification_watcher.login import (
+    is_launch_at_login_enabled,
+    open_full_disk_access_settings,
+    repair_macos_launch_agent_if_needed,
+    set_launch_at_login,
+)
 from notification_watcher.macos import (
     can_read_notification_db,
     format_delivered_date,
@@ -122,6 +127,7 @@ class NotificationWatcherApp(rumps.App):
         self._launch_item = self.menu["Launch at login"]
 
         self._apply_poll_menu_state()
+        repair_macos_launch_agent_if_needed()
         self._launch_item.state = is_launch_at_login_enabled()
         if self._config.launch_at_login != self._launch_item.state:
             self._config.launch_at_login = self._launch_item.state

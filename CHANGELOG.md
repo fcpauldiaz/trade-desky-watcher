@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.4.14
+
+- Fix macOS Launch at login so the LaunchAgent opens the `.app` bundle (not `Contents`), and repair a broken agent on startup
+
 ## 1.4.13
 
 - Sign in and ingest against tradedesky.com. Saved chapilabs platform and ingest URLs are rewritten on launch.
