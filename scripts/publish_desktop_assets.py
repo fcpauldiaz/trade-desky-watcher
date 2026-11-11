@@ -51,6 +51,8 @@ def main() -> int:
     if not files:
         raise SystemExit(f"No desktop assets in {args.dir}")
     payload, content_type = _multipart(files)
+    from notification_watcher.product import HTTP_USER_AGENT
+
     request = Request(
         f"{args.receiver}/v1/internal/desktop/assets",
         data=payload,
@@ -58,6 +60,7 @@ def main() -> int:
         headers={
             "Content-Type": content_type,
             "X-Internal-Secret": args.secret,
+            "User-Agent": HTTP_USER_AGENT,
         },
     )
     try:

@@ -144,12 +144,25 @@ jobs:
             -o release/appcast.xml
       - name: Publish assets to Trade Desky
         env:
-          # Origin hostname (not the Cloudflare domain) — GitHub Actions IPs get a managed challenge on trade-receiver.chapilabs.com.
+          # Prefer the public API host with Watcher UA. Origin IPs in RECEIVER_API_URL often time out from Actions.
           RECEIVER_API_URL: ${{ secrets.RECEIVER_API_URL }}
           INTERNAL_API_SECRET: ${{ secrets.INTERNAL_API_SECRET }}
         run: |
-          RECEIVER="${RECEIVER_API_URL:-https://trade-receiver.chapilabs.com}"
-          python scripts/publish_desktop_assets.py --receiver "$RECEIVER" --dir release
+          set +e
+          for RECEIVER in \
+            "https://api.tradedesky.com" \
+            "${RECEIVER_API_URL}" \
+            "https://trade-receiver.chapilabs.com"
+          do
+            [ -n "$RECEIVER" ] || continue
+            echo "Publishing to $RECEIVER"
+            python scripts/publish_desktop_assets.py --receiver "$RECEIVER" --dir release
+            status=$?
+            if [ "$status" -eq 0 ]; then
+              exit 0
+            fi
+          done
+          exit 1
       - name: Create or move version tag
         if: startsWith(github.ref, 'refs/heads/')
         run: |
