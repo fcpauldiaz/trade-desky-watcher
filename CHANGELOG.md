@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.4.15
+
+- Sign in with Google/Apple via the website: open browser, paste a one-time desktop code (email/password still works)
+
 ## 1.4.14
 
 - Fix macOS Launch at login so the LaunchAgent opens the `.app` bundle (not `Contents`), and repair a broken agent on startup

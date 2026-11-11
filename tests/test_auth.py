@@ -4,7 +4,12 @@ from urllib.error import HTTPError
 
 import pytest
 
-from notification_watcher.auth import AuthError, sign_in
+from notification_watcher.auth import (
+    AuthError,
+    desktop_sign_in_url,
+    redeem_desktop_code,
+    sign_in,
+)
 
 
 class _FakeResponse:
@@ -84,3 +89,31 @@ def test_sign_in_sends_product_user_agent(monkeypatch: pytest.MonkeyPatch) -> No
     assert captured["ua"].startswith("TradeDeskyWatcher/")
     assert result["auth_token"] == "key-1"
     assert result["account_email"] == "user@example.com"
+
+
+def test_redeem_desktop_code(monkeypatch: pytest.MonkeyPatch) -> None:
+    captured: dict[str, str] = {}
+
+    def ok(req: object, timeout: int = 0) -> _FakeResponse:
+        captured["url"] = req.full_url  # type: ignore[attr-defined]
+        captured["ua"] = req.get_header("User-agent")  # type: ignore[attr-defined]
+        return _FakeResponse(
+            {
+                "api_key": "key-2",
+                "ingest_url": "https://trade-receiver.chapilabs.com/v1/ingest",
+                "email": "oauth@example.com",
+            }
+        )
+
+    monkeypatch.setattr("notification_watcher.auth.urllib.request.urlopen", ok)
+    result = redeem_desktop_code("ABCD1234", "https://tradedesky.example")
+    assert captured["url"].endswith("/api/desktop/oauth/redeem")
+    assert captured["ua"].startswith("TradeDeskyWatcher/")
+    assert result["auth_token"] == "key-2"
+    assert result["account_email"] == "oauth@example.com"
+
+
+def test_desktop_sign_in_url() -> None:
+    assert desktop_sign_in_url("https://tradedesky.example/") == (
+        "https://tradedesky.example/desktop/sign-in"
+    )

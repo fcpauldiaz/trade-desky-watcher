@@ -5,6 +5,7 @@ from __future__ import annotations
 import sys
 import tkinter as tk
 import tkinter.font as tkfont
+import webbrowser
 from pathlib import Path
 from typing import Callable
 
@@ -40,8 +41,14 @@ def show_sign_in_dialog(
     *,
     initial_email: str = "",
     on_submit: Callable[[str, str], tuple[bool, str]],
+    on_redeem_code: Callable[[str], tuple[bool, str]] | None = None,
+    desktop_sign_in_url: str | None = None,
 ) -> str | None:
-    """Modal sign-in. ``on_submit`` returns (success, error_message). Returns signed-in email or None."""
+    """Modal sign-in.
+
+    ``on_submit`` and ``on_redeem_code`` return ``(success, error_or_email)``.
+    On success the second value is the signed-in email. Returns that email or None.
+    """
     result: str | None = None
     root.update_idletasks()
     win = tk.Toplevel(root)
@@ -50,7 +57,7 @@ def show_sign_in_dialog(
     win.resizable(False, False)
     win.withdraw()
 
-    width, height = 420, 460
+    width, height = 420, 620
     x = (win.winfo_screenwidth() // 2) - (width // 2)
     y = (win.winfo_screenheight() // 2) - (height // 2)
     win.geometry(f"{width}x{height}+{x}+{y}")
@@ -84,7 +91,10 @@ def show_sign_in_dialog(
     ).pack(anchor=tk.W, pady=(10, 4))
     tk.Label(
         header,
-        text=f"Use the same email and password as the {BRAND_NAME} website.",
+        text=(
+            f"Use Google, Apple, or email — same account as the {BRAND_NAME} website "
+            "and Whop billing."
+        ),
         font=body_font,
         fg=_MUTED,
         bg=_CARD,
@@ -95,6 +105,121 @@ def show_sign_in_dialog(
 
     form = tk.Frame(card, bg=_CARD)
     form.pack(fill=tk.X, padx=24, pady=(8, 0))
+
+    error_var = tk.StringVar()
+
+    def set_busy(busy: bool) -> None:
+        state = tk.DISABLED if busy else tk.NORMAL
+        sign_in_btn.configure(state=state, bg=_MUTED if busy else _PRIMARY)
+        cancel_btn.configure(state=state)
+        if browser_btn is not None:
+            browser_btn.configure(state=state)
+        if redeem_btn is not None:
+            redeem_btn.configure(state=state)
+
+    def finish_success(email: str) -> None:
+        nonlocal result
+        result = email
+        close()
+
+    browser_btn: tk.Button | None = None
+    if desktop_sign_in_url:
+
+        def open_browser() -> None:
+            error_var.set("")
+            webbrowser.open(desktop_sign_in_url)
+
+        browser_btn = tk.Button(
+            form,
+            text="Continue with Google / Apple",
+            font=label_font,
+            fg=_INK,
+            bg=_BG,
+            activebackground=_BORDER,
+            activeforeground=_INK,
+            relief=tk.FLAT,
+            cursor="hand2",
+            padx=12,
+            pady=8,
+            command=open_browser,
+        )
+        browser_btn.pack(fill=tk.X, pady=(0, 8))
+        tk.Label(
+            form,
+            text="Opens the website. Sign in, then paste the one-time code below.",
+            font=body_font,
+            fg=_MUTED,
+            bg=_CARD,
+            wraplength=340,
+            justify=tk.LEFT,
+            anchor=tk.W,
+        ).pack(fill=tk.X, pady=(0, 12))
+
+    redeem_btn: tk.Button | None = None
+    code_entry: tk.Entry | None = None
+    if on_redeem_code is not None:
+        tk.Label(form, text="Desktop code", font=label_font, fg=_INK, bg=_CARD, anchor=tk.W).pack(
+            fill=tk.X, pady=(0, 4)
+        )
+        code_var = tk.StringVar()
+        code_entry = tk.Entry(
+            form,
+            textvariable=code_var,
+            font=entry_font,
+            relief=tk.FLAT,
+            bg="#FAFBFA",
+            fg=_INK,
+            insertbackground=_INK,
+            highlightthickness=1,
+            highlightbackground=_BORDER,
+            highlightcolor=_PRIMARY,
+        )
+        code_entry.pack(fill=tk.X, ipady=8, pady=(0, 8))
+
+        def redeem() -> None:
+            code = code_var.get().strip()
+            if not code:
+                error_var.set("Paste the code from the website.")
+                if code_entry is not None:
+                    code_entry.focus_set()
+                return
+            error_var.set("")
+            set_busy(True)
+            win.update_idletasks()
+            ok, email_or_error = on_redeem_code(code)
+            if ok:
+                finish_success(email_or_error)
+                return
+            error_var.set(email_or_error or "Invalid or expired code.")
+            set_busy(False)
+            if code_entry is not None:
+                code_entry.focus_set()
+                code_entry.select_range(0, tk.END)
+
+        redeem_btn = tk.Button(
+            form,
+            text="Link with code",
+            font=label_font,
+            fg=_INK,
+            bg=_PRIMARY,
+            activebackground=_PRIMARY_ACTIVE,
+            activeforeground=_INK,
+            relief=tk.FLAT,
+            cursor="hand2",
+            padx=12,
+            pady=8,
+            command=redeem,
+        )
+        redeem_btn.pack(fill=tk.X, pady=(0, 14))
+
+        tk.Label(
+            form,
+            text="or email and password",
+            font=body_font,
+            fg=_MUTED,
+            bg=_CARD,
+            anchor=tk.W,
+        ).pack(fill=tk.X, pady=(0, 10))
 
     tk.Label(form, text="Email", font=label_font, fg=_INK, bg=_CARD, anchor=tk.W).pack(
         fill=tk.X, pady=(0, 4)
@@ -133,7 +258,6 @@ def show_sign_in_dialog(
     )
     password_entry.pack(fill=tk.X, ipady=8)
 
-    error_var = tk.StringVar()
     tk.Label(
         form,
         textvariable=error_var,
@@ -156,7 +280,6 @@ def show_sign_in_dialog(
         win.destroy()
 
     def submit() -> None:
-        nonlocal result
         email = email_var.get().strip()
         password = password_var.get()
         if not email:
@@ -168,17 +291,14 @@ def show_sign_in_dialog(
             password_entry.focus_set()
             return
         error_var.set("")
-        sign_in_btn.configure(state=tk.DISABLED, bg=_MUTED)
-        cancel_btn.configure(state=tk.DISABLED)
+        set_busy(True)
         win.update_idletasks()
         ok, message = on_submit(email, password)
         if ok:
-            result = email
-            close()
+            finish_success(email)
             return
         error_var.set(message or "Sign in failed.")
-        sign_in_btn.configure(state=tk.NORMAL, bg=_PRIMARY)
-        cancel_btn.configure(state=tk.NORMAL)
+        set_busy(False)
         password_entry.focus_set()
         password_entry.select_range(0, tk.END)
 

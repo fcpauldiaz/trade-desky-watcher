@@ -26,12 +26,11 @@ def _message_from_http_error(exc: urllib.error.HTTPError) -> str:
     return "Sign in failed"
 
 
-def sign_in(email: str, password: str, platform_url: str | None = None) -> dict[str, str]:
-    base = (platform_url or DEFAULT_PLATFORM_URL).rstrip("/")
-    payload = json.dumps({"email": email, "password": password}).encode("utf-8")
+def _post_json(url: str, payload: dict[str, str]) -> dict[str, str]:
+    body = json.dumps(payload).encode("utf-8")
     req = urllib.request.Request(
-        f"{base}/api/desktop/auth",
-        data=payload,
+        url,
+        data=body,
         headers={
             "Content-Type": "application/json",
             "Accept": "application/json",
@@ -47,9 +46,19 @@ def sign_in(email: str, password: str, platform_url: str | None = None) -> dict[
     except (urllib.error.URLError, OSError, TimeoutError) as exc:
         raise AuthError(f"Could not reach platform: {exc}") from exc
 
+    if not isinstance(data, dict):
+        raise AuthError("Platform returned an unexpected response")
+    return {str(k): str(v) for k, v in data.items() if v is not None}
+
+
+def _device_token_result(
+    data: dict[str, str],
+    *,
+    fallback_email: str,
+) -> dict[str, str]:
     api_key = data.get("api_key")
     ingest_url = data.get("ingest_url") or DEFAULT_INGEST_URL
-    account_email = data.get("email") or email
+    account_email = data.get("email") or fallback_email
     if not api_key:
         raise AuthError("Platform did not return a device token")
     return {
@@ -57,3 +66,26 @@ def sign_in(email: str, password: str, platform_url: str | None = None) -> dict[
         "ingest_url": ingest_url,
         "account_email": account_email,
     }
+
+
+def sign_in(email: str, password: str, platform_url: str | None = None) -> dict[str, str]:
+    base = (platform_url or DEFAULT_PLATFORM_URL).rstrip("/")
+    data = _post_json(
+        f"{base}/api/desktop/auth",
+        {"email": email, "password": password},
+    )
+    return _device_token_result(data, fallback_email=email)
+
+
+def redeem_desktop_code(code: str, platform_url: str | None = None) -> dict[str, str]:
+    base = (platform_url or DEFAULT_PLATFORM_URL).rstrip("/")
+    data = _post_json(
+        f"{base}/api/desktop/oauth/redeem",
+        {"code": code.strip()},
+    )
+    return _device_token_result(data, fallback_email="")
+
+
+def desktop_sign_in_url(platform_url: str | None = None) -> str:
+    base = (platform_url or DEFAULT_PLATFORM_URL).rstrip("/")
+    return f"{base}/desktop/sign-in"

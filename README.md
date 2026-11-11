@@ -13,7 +13,7 @@ Cross-platform utility that watches OS notifications and forwards them to Trade 
 - Recent notifications list with detail view
 - Configurable poll interval: 10 ms, 50 ms, 100 ms, 500 ms, 1 s
 - App filter (SQL LIKE) and Discord-only shortcut
-- Account sign-in to Trade Desky (no manual URLs to configure)
+- Account sign-in to Trade Desky (email/password or browser Google/Apple via one-time code)
 - Forwards alerts to the platform ingest endpoint automatically
 - Persistent settings, launch at login, local logs
 - CLI (`scraper.py`) for scripting

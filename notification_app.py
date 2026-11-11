@@ -12,7 +12,12 @@ import rumps
 
 import ingest_sender
 from notification_watcher.account_status import format_status_line
-from notification_watcher.auth import AuthError, sign_in
+from notification_watcher.auth import (
+    AuthError,
+    desktop_sign_in_url,
+    redeem_desktop_code,
+    sign_in,
+)
 from notification_watcher.config import get_app_logger, get_log_path, load_config, save_config
 from notification_watcher.login import (
     is_launch_at_login_enabled,
@@ -250,22 +255,35 @@ class NotificationWatcherApp(rumps.App):
         root = tk.Tk()
         root.withdraw()
 
-        def authenticate(email: str, password: str) -> tuple[bool, str]:
-            try:
-                result = sign_in(email, password, self._config.platform_url)
-            except AuthError as exc:
-                return False, str(exc)
+        def apply_auth(result: dict[str, str]) -> None:
             self._config.auth_token = result["auth_token"]
             self._config.ingest_url = result["ingest_url"]
             self._config.account_email = result["account_email"]
             save_config(self._config)
             ingest_sender.flush_pending(self._config)
+
+        def authenticate(email: str, password: str) -> tuple[bool, str]:
+            try:
+                result = sign_in(email, password, self._config.platform_url)
+            except AuthError as exc:
+                return False, str(exc)
+            apply_auth(result)
             return True, ""
+
+        def redeem(code: str) -> tuple[bool, str]:
+            try:
+                result = redeem_desktop_code(code, self._config.platform_url)
+            except AuthError as exc:
+                return False, str(exc)
+            apply_auth(result)
+            return True, result["account_email"]
 
         signed_email = show_sign_in_dialog(
             root,
             initial_email=self._config.account_email or "",
             on_submit=authenticate,
+            on_redeem_code=redeem,
+            desktop_sign_in_url=desktop_sign_in_url(self._config.platform_url),
         )
         root.destroy()
         if signed_email:
