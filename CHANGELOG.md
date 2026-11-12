@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.4.16
+
+- Fix Windows tray icon not appearing after the first-run welcome setup callback (pystray requires `visible = True` when a custom setup is used)
+
 ## 1.4.15
 
 - Sign in with Google/Apple via the website: open browser, paste a one-time desktop code (email/password still works)

@@ -198,8 +198,13 @@ def _sparkle_framework_path() -> Path | None:
 def _winsparkle_dll_path() -> Path | None:
     name = "WinSparkle.dll"
     if getattr(sys, "frozen", False):
-        bundled = Path(sys.executable).resolve().parent / name
-        if bundled.exists():
-            return bundled
+        meipass = getattr(sys, "_MEIPASS", None)
+        candidates = []
+        if isinstance(meipass, str):
+            candidates.append(Path(meipass) / name)
+        candidates.append(Path(sys.executable).resolve().parent / name)
+        for bundled in candidates:
+            if bundled.exists():
+                return bundled
     vendor = Path(__file__).resolve().parents[1] / "vendor" / name
     return vendor if vendor.exists() else None

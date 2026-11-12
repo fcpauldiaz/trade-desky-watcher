@@ -77,6 +77,9 @@ Section "Install"
   CreateShortCut "$SMPROGRAMS\Trade Desky Watcher\Trade Desky Watcher.lnk" "$INSTDIR\TradeDeskyWatcher.exe"
   CreateShortCut "$DESKTOP\Trade Desky Watcher.lnk" "$INSTDIR\TradeDeskyWatcher.exe"
   WriteUninstaller "$INSTDIR\Uninstall.exe"
+  ; WinSparkle runs setup with /S; custom finish page is skipped, so relaunch here.
+  IfSilent 0 +2
+    Exec '"$INSTDIR\TradeDeskyWatcher.exe"'
 SectionEnd
 
 Section "Uninstall"

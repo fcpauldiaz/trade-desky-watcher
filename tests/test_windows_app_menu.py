@@ -36,3 +36,17 @@ def test_build_menu_returns_pystray_menu() -> None:
 
     tray_src = inspect.getsource(WindowsNotificationApp._build_tray)
     assert "menu=self._build_menu()" in tray_src
+
+
+def test_on_tray_ready_makes_icon_visible() -> None:
+    sys.modules["pystray"] = _fake_pystray_module()
+    from windows_app import WindowsNotificationApp
+
+    app = WindowsNotificationApp.__new__(WindowsNotificationApp)
+    app._config = default_config()
+    app._config.tray_welcome_shown = True
+    app._run_on_ui = MagicMock()
+    icon = MagicMock()
+    app._on_tray_ready(icon)
+    assert icon.visible is True
+    app._run_on_ui.assert_not_called()

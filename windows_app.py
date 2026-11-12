@@ -406,6 +406,8 @@ class WindowsNotificationApp:
             messagebox.showerror("Connection test failed", message, parent=self._tk_root)
 
     def _on_tray_ready(self, icon: pystray.Icon) -> None:
+        # Custom setup replaces pystray's default; without this the icon never appears.
+        icon.visible = True
         if not self._config.tray_welcome_shown:
             try:
                 icon.notify(TRAY_WELCOME_BALLOON, TRAY_WELCOME_TITLE)
@@ -470,8 +472,12 @@ class WindowsNotificationApp:
 
 
 def main() -> None:
-    app = WindowsNotificationApp()
-    app.run()
+    try:
+        app = WindowsNotificationApp()
+        app.run()
+    except Exception:
+        get_app_logger().exception("Windows tray app failed to start")
+        raise
 
 
 if __name__ == "__main__":
